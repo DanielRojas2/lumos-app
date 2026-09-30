@@ -38,13 +38,13 @@ function getVar(key, defaultValue = '') {
 }
 
 const config = {
-  apiKey: getVar('FIREBASE_API_KEY', 'AIzaSyDummyKeyForLumosOfflineFirstApp'),
+  apiKey: getVar('FIREBASE_API_KEY', 'AIzaSyB_4ShS_ImjN-sn66ymCJyeAKoa_F0ZUk8'),
   authDomain: getVar('FIREBASE_AUTH_DOMAIN', 'lumos-agenda-app.firebaseapp.com'),
-  projectId: getVar('FIREBASE_PROJECT_ID', 'lumos-agenda-app'),
-  storageBucket: getVar('FIREBASE_STORAGE_BUCKET', 'lumos-agenda-app.firebasestorage.app'),
-  messagingSenderId: getVar('FIREBASE_MESSAGING_SENDER_ID', '1234567890'),
-  appId: getVar('FIREBASE_APP_ID', '1:1234567890:web:abcdef123456'),
-  googleWebClientId: getVar('GOOGLE_WEB_CLIENT_ID', '1234567890-samplewebclientid.apps.googleusercontent.com')
+  projectId: getVar('FIREBASE_PROJECT_ID', 'lumos-agenda'),
+  storageBucket: getVar('FIREBASE_STORAGE_BUCKET', 'lumos-agenda.firebasestorage.app'),
+  messagingSenderId: getVar('FIREBASE_MESSAGING_SENDER_ID', '160633031688'),
+  appId: getVar('FIREBASE_APP_ID', '1:160633031688:web:1f14ec696475b1f6ae55bd'),
+  googleWebClientId: getVar('GOOGLE_WEB_CLIENT_ID', '160633031688-8dcn55vbug7s0ei3p3b7ekk89b4coqq5.apps.googleusercontent.com')
 };
 
 function generateContent(isProd) {

@@ -42,22 +42,42 @@ export class SoundPickerService {
 
   async pickLocalFile(): Promise<SoundTone | null> {
     try {
+      this.stopPreview();
+
       if (Capacitor.isNativePlatform()) {
         const result = await FilePicker.pickFiles({
-          types: ['video/mp4', 'audio/*'],
-          readData: false,
+          types: ['audio/*', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'video/mp4'],
+          readData: true,
           limit: 1
         });
 
-        if (result.files.length > 0) {
+        if (result.files && result.files.length > 0) {
           const file = result.files[0];
+          let audioUri = '';
+
+          // Prefer data URI (Base64) for 100% reliable WebView playback without filesystem permission issues
+          if (file.data) {
+            const mime = file.mimeType || 'audio/mpeg';
+            audioUri = `data:${mime};base64,${file.data}`;
+          } else if (file.webPath) {
+            audioUri = file.webPath;
+          } else if (file.path) {
+            audioUri = Capacitor.convertFileSrc(file.path);
+          }
+
           const customTone: SoundTone = {
             id: 'custom_' + Date.now(),
-            name: file.name || 'Archivo de Alarma (.mp4)',
-            uri: file.path || file.webPath || '',
+            name: file.name || 'Alarma Personalizada (.mp3)',
+            uri: audioUri,
             isCustom: true
           };
           this.currentTone.set(customTone);
+
+          // Inmediata previsualización auditiva para el usuario
+          setTimeout(() => {
+            this.playPreview();
+          }, 200);
+
           return customTone;
         }
       } else {
@@ -65,7 +85,7 @@ export class SoundPickerService {
         return new Promise((resolve) => {
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = 'video/mp4,audio/*';
+          input.accept = 'audio/*,audio/mp3,audio/mpeg,video/mp4,.mp3,.wav,.ogg,.m4a,.mp4';
           input.onchange = (e: Event) => {
             const target = e.target as HTMLInputElement;
             if (target.files && target.files.length > 0) {
@@ -73,11 +93,14 @@ export class SoundPickerService {
               const url = URL.createObjectURL(file);
               const customTone: SoundTone = {
                 id: 'custom_' + Date.now(),
-                name: file.name,
+                name: file.name || 'Alarma Personalizada (.mp3)',
                 uri: url,
                 isCustom: true
               };
               this.currentTone.set(customTone);
+              setTimeout(() => {
+                this.playPreview();
+              }, 150);
               resolve(customTone);
             } else {
               resolve(null);
@@ -87,12 +110,13 @@ export class SoundPickerService {
         });
       }
     } catch (err) {
-      console.warn('FilePicker cancelled or unavailable:', err);
+      console.warn('FilePicker error or cancelled:', err);
     }
     return null;
   }
 
   selectTone(tone: SoundTone) {
+    this.stopPreview();
     this.currentTone.set(tone);
   }
 
@@ -105,15 +129,39 @@ export class SoundPickerService {
     const volume = Math.max(0, Math.min(1, volumePercent / 100));
     const tone = this.currentTone();
 
-    if (tone.isCustom && tone.uri && this.audioElement) {
+    if (tone.isCustom && tone.uri) {
       try {
-        this.audioElement.src = tone.uri;
+        if (!this.audioElement) {
+          this.audioElement = new Audio();
+        }
+
+        let audioSrc = tone.uri;
+        // If native absolute file path without scheme, convert with Capacitor
+        if (Capacitor.isNativePlatform() && !audioSrc.startsWith('data:') && !audioSrc.startsWith('http') && !audioSrc.startsWith('blob:')) {
+          audioSrc = Capacitor.convertFileSrc(audioSrc);
+        }
+
+        this.audioElement.pause();
+        this.audioElement.currentTime = 0;
+        this.audioElement.src = audioSrc;
         this.audioElement.volume = volume;
+
+        this.audioElement.onended = () => {
+          this.isPlaying.set(false);
+        };
+
+        this.audioElement.onerror = (e) => {
+          console.warn('HTMLAudioElement playback error, falling back to melodic synthesizer:', e);
+          this.isPlaying.set(false);
+          this.playSynthesizedTone(tone.id, volume);
+        };
+
         await this.audioElement.play();
         this.isPlaying.set(true);
         return;
       } catch (e) {
-        console.warn('Native audio play error, falling back to melodic synthesizer:', e);
+        console.warn('Custom audio play exception, falling back to synthesizer:', e);
+        this.isPlaying.set(false);
       }
     }
 
@@ -123,8 +171,10 @@ export class SoundPickerService {
 
   stopPreview() {
     if (this.audioElement) {
-      this.audioElement.pause();
-      this.audioElement.currentTime = 0;
+      try {
+        this.audioElement.pause();
+        this.audioElement.currentTime = 0;
+      } catch {}
     }
     if (this.audioCtx && this.isSynthesizing) {
       try {

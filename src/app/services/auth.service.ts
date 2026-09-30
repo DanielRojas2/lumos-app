@@ -6,6 +6,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup, signOut as fbSignOut, onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../core/firebase';
 import { AppUser } from '../models/user.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -113,9 +114,13 @@ export class AuthService {
     try {
       if (Capacitor.isNativePlatform()) {
         try {
-          GoogleAuth.initialize();
-        } catch {
-          // Already initialized
+          await GoogleAuth.initialize({
+            clientId: environment.googleWebClientId,
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: true
+          });
+        } catch (initErr) {
+          console.warn('GoogleAuth init warning:', initErr);
         }
 
         const googleUser = await GoogleAuth.signIn();

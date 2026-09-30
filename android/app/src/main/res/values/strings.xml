@@ -4,4 +4,5 @@
     <string name="title_activity_main">Lumos</string>
     <string name="package_name">com.lumos.agenda</string>
     <string name="custom_url_scheme">com.lumos.agenda</string>
+    <string name="server_client_id">160633031688-8dcn55vbug7s0ei3p3b7ekk89b4coqq5.apps.googleusercontent.com</string>
 </resources>
