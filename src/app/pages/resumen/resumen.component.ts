@@ -1,6 +1,7 @@
 import { Component, inject, computed, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActividadService } from '../../services/actividad.service';
+import { AuthService } from '../../services/auth.service';
 import { I18nService } from '../../services/i18n.service';
 import { Actividad, CategoriaActividad } from '../../models/actividad.model';
 import { TimeDistributionBarComponent } from '../../components/time-distribution-bar/time-distribution-bar.component';
@@ -31,11 +32,20 @@ import { CategoryChipComponent } from '../../components/category-chip/category-c
         </div>
 
         <div class="w-8 h-8 rounded-full overflow-hidden border border-neutral-300">
-          <img
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
-            alt="Avatar"
-            class="w-full h-full object-cover"
-          />
+          @if (auth.currentUser()?.photoURL) {
+            <img
+              [src]="auth.currentUser()?.photoURL"
+              alt="Avatar"
+              class="w-full h-full object-cover"
+            />
+          } @else {
+            <div class="w-full h-full bg-neutral-100 flex items-center justify-center text-neutral-600">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+          }
         </div>
       </header>
 
@@ -286,6 +296,7 @@ import { CategoryChipComponent } from '../../components/category-chip/category-c
 })
 export class ResumenComponent {
   readonly actividadService = inject(ActividadService);
+  readonly auth = inject(AuthService);
   readonly i18n = inject(I18nService);
 
   readonly viewMode = signal<'semana' | 'mes'>('semana');
@@ -305,9 +316,10 @@ export class ResumenComponent {
     const list = this.actividadService.actividades();
     const map = this.actividadService.alarmas();
     const cat = this.selectedCategory();
+    const todayStr = new Date().toISOString().split('T')[0];
 
     return list
-      .filter((a) => a.id === 'act_4' || a.id === 'act_5' || a.id === 'act_2')
+      .filter((a) => a.fecha_actividad === todayStr && a.alarma_id)
       .filter((a) => (cat === 'todos' ? true : a.categoria === cat))
       .map((a) => ({ actividad: a, alarma: a.alarma_id ? map[a.alarma_id] : undefined }));
   });
@@ -316,9 +328,10 @@ export class ResumenComponent {
     const list = this.actividadService.actividades();
     const map = this.actividadService.alarmas();
     const cat = this.selectedCategory();
+    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
     return list
-      .filter((a) => a.id === 'act_6' || a.id === 'act_7' || a.id === 'act_8')
+      .filter((a) => a.fecha_actividad === tomorrowStr && a.alarma_id)
       .filter((a) => (cat === 'todos' ? true : a.categoria === cat))
       .map((a) => ({ actividad: a, alarma: a.alarma_id ? map[a.alarma_id] : undefined }));
   });
@@ -326,6 +339,6 @@ export class ResumenComponent {
   readonly activeAlarmsCount = computed(() => {
     const today = this.todayAlarms().filter((i) => i.alarma?.notificacion_push).length;
     const tomorrow = this.tomorrowAlarms().filter((i) => i.alarma?.notificacion_push).length;
-    return today + tomorrow || 4;
+    return today + tomorrow;
   });
 }

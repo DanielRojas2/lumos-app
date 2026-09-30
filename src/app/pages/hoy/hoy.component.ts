@@ -46,11 +46,20 @@ import { LangToggleComponent } from '../../components/lang-toggle/lang-toggle.co
             class="relative w-8 h-8 rounded-full overflow-hidden border border-neutral-300 ring-2 ring-transparent hover:ring-neutral-200 transition-all select-none"
             title="Cuenta de usuario"
           >
-            <img
-              [src]="auth.currentUser()?.photoURL || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80'"
-              alt="Avatar"
-              class="w-full h-full object-cover"
-            />
+            @if (auth.currentUser()?.photoURL) {
+              <img
+                [src]="auth.currentUser()?.photoURL"
+                alt="Avatar"
+                class="w-full h-full object-cover"
+              />
+            } @else {
+              <div class="w-full h-full bg-neutral-100 flex items-center justify-center text-neutral-600">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+            }
           </button>
         </div>
       </header>

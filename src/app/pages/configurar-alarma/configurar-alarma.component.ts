@@ -5,6 +5,7 @@ import { ActividadService } from '../../services/actividad.service';
 import { SoundPickerService } from '../../services/sound-picker.service';
 import { NotificationService } from '../../services/notification.service';
 import { I18nService } from '../../services/i18n.service';
+import { AuthService } from '../../services/auth.service';
 import { Actividad } from '../../models/actividad.model';
 import { Alarma } from '../../models/alarma.model';
 
@@ -24,11 +25,20 @@ import { Alarma } from '../../models/alarma.model';
         </div>
 
         <div class="w-8 h-8 rounded-full overflow-hidden border border-neutral-300">
-          <img
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
-            alt="Avatar"
-            class="w-full h-full object-cover"
-          />
+          @if (auth.currentUser()?.photoURL) {
+            <img
+              [src]="auth.currentUser()?.photoURL"
+              alt="Avatar"
+              class="w-full h-full object-cover"
+            />
+          } @else {
+            <div class="w-full h-full bg-neutral-100 flex items-center justify-center text-neutral-600">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+          }
         </div>
       </header>
 
@@ -483,6 +493,7 @@ import { Alarma } from '../../models/alarma.model';
 })
 export class ConfigurarAlarmaComponent implements OnInit {
   readonly actividadService = inject(ActividadService);
+  readonly auth = inject(AuthService);
   readonly soundService = inject(SoundPickerService);
   readonly notificationService = inject(NotificationService);
   readonly i18n = inject(I18nService);

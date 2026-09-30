@@ -1,222 +1,11 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '../core/firebase';
 import { Actividad, CategoriaActividad } from '../models/actividad.model';
 import { Alarma } from '../models/alarma.model';
 import { AuthService } from './auth.service';
 import { NotificationService } from './notification.service';
-
-const INITIAL_ACTIVITIES: Actividad[] = [
-  {
-    id: 'act_1',
-    id_usuario: 'seed_user',
-    titulo: 'Reunión de Sincronización de Equipo',
-    categoria: 'trabajo',
-    ubicacion: 'Google Meet',
-    fecha_actividad: new Date().toISOString().split('T')[0],
-    hora_inicio: '08:30',
-    hora_fin: '09:30',
-    hora_alarma: '08:15',
-    alarma_id: 'alarm_1',
-    notas: 'Revisión de avance semanal y bloqueantes.',
-    completado: true,
-    creado: new Date().toISOString()
-  },
-  {
-    id: 'act_2',
-    id_usuario: 'seed_user',
-    titulo: 'Clase: Arquitectura de Software',
-    categoria: 'clases',
-    ubicacion: 'Fac. Ingeniería, Aula 302',
-    fecha_actividad: new Date().toISOString().split('T')[0],
-    hora_inicio: '10:15',
-    hora_fin: '12:00',
-    hora_alarma: '10:00',
-    alarma_id: 'alarm_2',
-    notas: 'Llevar apuntes de patrones arquitectónicos.',
-    completado: false,
-    creado: new Date().toISOString()
-  },
-  {
-    id: 'act_3',
-    id_usuario: 'seed_user',
-    titulo: 'Almuerzo y networking',
-    categoria: 'personal',
-    ubicacion: 'Bistró Central, Av. Reforma',
-    fecha_actividad: new Date().toISOString().split('T')[0],
-    hora_inicio: '13:30',
-    hora_fin: '14:30',
-    hora_alarma: '',
-    alarma_id: '',
-    notas: 'Reunión informal con el equipo de producto.',
-    completado: false,
-    creado: new Date().toISOString()
-  },
-  {
-    id: 'act_4',
-    id_usuario: 'seed_user',
-    titulo: 'Entrega de Informe Trimestral',
-    categoria: 'trabajo',
-    ubicacion: 'Oficina Central',
-    fecha_actividad: new Date().toISOString().split('T')[0],
-    hora_inicio: '15:30',
-    hora_fin: '17:00',
-    hora_alarma: '15:00',
-    alarma_id: 'alarm_4',
-    notas: 'Revisión final de métricas de desempeño financiero.',
-    completado: false,
-    creado: new Date().toISOString()
-  },
-  {
-    id: 'act_5',
-    id_usuario: 'seed_user',
-    titulo: 'Taller de Diseño UX/UI',
-    categoria: 'clases',
-    ubicacion: 'Campus Norte, Lab 4',
-    fecha_actividad: new Date().toISOString().split('T')[0],
-    hora_inicio: '18:00',
-    hora_fin: '19:30',
-    hora_alarma: '17:45',
-    alarma_id: 'alarm_5',
-    notas: 'Pruebas de usabilidad y wireframing en Figma.',
-    completado: false,
-    creado: new Date().toISOString()
-  },
-  // Upcoming activities for next days
-  {
-    id: 'act_6',
-    id_usuario: 'seed_user',
-    titulo: 'Diseño de Sistemas Distribuidos',
-    categoria: 'clases',
-    ubicacion: 'Campus Central · Auditorio',
-    fecha_actividad: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    hora_inicio: '09:00',
-    hora_fin: '11:00',
-    hora_alarma: '08:15',
-    alarma_id: 'alarm_6',
-    notas: 'Teoría CAP y replicación de base de datos.',
-    completado: false,
-    creado: new Date().toISOString()
-  },
-  {
-    id: 'act_7',
-    id_usuario: 'seed_user',
-    titulo: 'Demo Cliente & Entrega de Sprint',
-    categoria: 'trabajo',
-    ubicacion: 'Oficina Principal · Piso 4',
-    fecha_actividad: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    hora_inicio: '15:00',
-    hora_fin: '16:30',
-    hora_alarma: '14:40',
-    alarma_id: 'alarm_7',
-    notas: 'Presentación de funcionalidades versión 1.2.',
-    completado: false,
-    creado: new Date().toISOString()
-  },
-  {
-    id: 'act_8',
-    id_usuario: 'seed_user',
-    titulo: 'Entrega Ensayo de Ética Tecnológica',
-    categoria: 'tareas',
-    ubicacion: 'Portal Académico',
-    fecha_actividad: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    hora_inicio: '19:00',
-    hora_fin: '20:30',
-    hora_alarma: '',
-    alarma_id: 'alarm_8',
-    notas: 'Subir PDF con normas APA antes de medianoche.',
-    completado: false,
-    creado: new Date().toISOString()
-  }
-];
-
-const INITIAL_ALARMAS: Record<string, Alarma> = {
-  alarm_1: {
-    id: 'alarm_1',
-    tiempo_anticipacion: 15,
-    tono: 'default_radar_suave',
-    volumen: 85,
-    vibracion: true,
-    recurrencia: true,
-    frecuencia: 'dias_habiles',
-    notificacion_push: true,
-    pantalla_completa: true,
-    mensaje: 'Comienza en 15 minutos en Google Meet.'
-  },
-  alarm_2: {
-    id: 'alarm_2',
-    tiempo_anticipacion: 15,
-    tono: 'default_radar_suave',
-    volumen: 85,
-    vibracion: true,
-    recurrencia: true,
-    frecuencia: 'solo_una_vez' as any,
-    notificacion_push: true,
-    pantalla_completa: true,
-    mensaje: 'Comienza en 15 minutos en el Aula 302.'
-  },
-  alarm_4: {
-    id: 'alarm_4',
-    tiempo_anticipacion: 30,
-    tono: 'default_radar_suave',
-    volumen: 90,
-    vibracion: true,
-    recurrencia: true,
-    frecuencia: 'solo_una_vez' as any,
-    notificacion_push: true,
-    pantalla_completa: true,
-    mensaje: 'Entrega de Informe Trimestral en 30 minutos.'
-  },
-  alarm_5: {
-    id: 'alarm_5',
-    tiempo_anticipacion: 15,
-    tono: 'default_radar_suave',
-    volumen: 80,
-    vibracion: true,
-    recurrencia: false,
-    frecuencia: 'solo_una_vez' as any,
-    notificacion_push: true,
-    pantalla_completa: false,
-    mensaje: 'Taller de Diseño UX/UI en 15 min.'
-  },
-  alarm_6: {
-    id: 'alarm_6',
-    tiempo_anticipacion: 45,
-    tono: 'default_radar_suave',
-    volumen: 85,
-    vibracion: true,
-    recurrencia: true,
-    frecuencia: 'dias_habiles',
-    notificacion_push: true,
-    pantalla_completa: true,
-    mensaje: 'Diseño de Sistemas Distribuidos en 45 min.'
-  },
-  alarm_7: {
-    id: 'alarm_7',
-    tiempo_anticipacion: 20,
-    tono: 'default_radar_suave',
-    volumen: 85,
-    vibracion: true,
-    recurrencia: true,
-    frecuencia: 'solo_una_vez' as any,
-    notificacion_push: true,
-    pantalla_completa: true,
-    mensaje: 'Demo Cliente en 20 min.'
-  },
-  alarm_8: {
-    id: 'alarm_8',
-    tiempo_anticipacion: 0,
-    tono: 'default_radar_suave',
-    volumen: 70,
-    vibracion: false,
-    recurrencia: false,
-    frecuencia: 'solo_una_vez' as any,
-    notificacion_push: false,
-    pantalla_completa: false,
-    mensaje: 'Alarma inactiva'
-  }
-};
 
 @Injectable({
   providedIn: 'root'
@@ -225,13 +14,16 @@ export class ActividadService {
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationService);
 
-  private readonly STORAGE_ACTIVITIES_KEY = 'lumos_stored_activities';
-  private readonly STORAGE_ALARMAS_KEY = 'lumos_stored_alarms';
+  private readonly STORAGE_ACTIVITIES_PREFIX = 'lumos_stored_activities_';
+  private readonly STORAGE_ALARMAS_PREFIX = 'lumos_stored_alarms_';
 
   readonly actividades = signal<Actividad[]>([]);
   readonly alarmas = signal<Record<string, Alarma>>({});
   readonly selectedCategory = signal<CategoriaActividad | 'todos'>('todos');
   readonly selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
+
+  private firestoreUnsubscribe: Unsubscribe | null = null;
+  private currentUserId: string = '';
 
   // Filtered by selected date and category
   readonly actividadesDelDia = computed(() => {
@@ -257,7 +49,7 @@ export class ActividadService {
     return this.actividades().filter((a) => {
       if (!a.alarma_id) return false;
       const al = alarmsMap[a.alarma_id];
-      return al && (al.notificacion_push || al.tiempo_anticipacion >= 0 && al.volumen > 0);
+      return al && (al.notificacion_push || (al.tiempo_anticipacion >= 0 && al.volumen > 0));
     });
   });
 
@@ -282,50 +74,110 @@ export class ActividadService {
     const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
 
     return {
-      totalHours: totalHours || 35,
-      trabajoHours: Math.round(res.trabajo / 60) || 14,
-      clasesHours: Math.round(res.clases / 60) || 10,
-      tareasHours: Math.round(res.tareas / 60) || 6,
-      personalHours: Math.round(res.personal / 60) || 5,
-      trabajoPct: totalMinutes ? Math.round((res.trabajo / totalMinutes) * 100) : 40,
-      clasesPct: totalMinutes ? Math.round((res.clases / totalMinutes) * 100) : 28,
-      tareasPct: totalMinutes ? Math.round((res.tareas / totalMinutes) * 100) : 17,
-      personalPct: totalMinutes ? Math.round((res.personal / totalMinutes) * 100) : 15
+      totalHours: totalHours,
+      trabajoHours: Math.round(res.trabajo / 60),
+      clasesHours: Math.round(res.clases / 60),
+      tareasHours: Math.round(res.tareas / 60),
+      personalHours: Math.round(res.personal / 60),
+      trabajoPct: totalMinutes ? Math.round((res.trabajo / totalMinutes) * 100) : 0,
+      clasesPct: totalMinutes ? Math.round((res.clases / totalMinutes) * 100) : 0,
+      tareasPct: totalMinutes ? Math.round((res.tareas / totalMinutes) * 100) : 0,
+      personalPct: totalMinutes ? Math.round((res.personal / totalMinutes) * 100) : 0
     };
   });
 
   constructor() {
-    this.cargarDatosIniciales();
+    // Reactively watch user session changes
+    effect(() => {
+      const user = this.auth.currentUser();
+      const uid = user ? user.uid : 'guest';
+      const isGuest = !user || user.isOfflineGuest;
+
+      if (this.currentUserId !== uid) {
+        this.currentUserId = uid;
+        this.onUserContextChanged(uid, isGuest);
+      }
+    });
   }
 
-  private async cargarDatosIniciales() {
-    try {
-      const { value: actStr } = await Preferences.get({ key: this.STORAGE_ACTIVITIES_KEY });
-      const { value: almStr } = await Preferences.get({ key: this.STORAGE_ALARMAS_KEY });
+  private async onUserContextChanged(uid: string, isGuest: boolean) {
+    if (this.firestoreUnsubscribe) {
+      this.firestoreUnsubscribe();
+      this.firestoreUnsubscribe = null;
+    }
 
-      if (actStr && almStr) {
-        this.actividades.set(JSON.parse(actStr));
-        this.alarmas.set(JSON.parse(almStr));
-      } else {
-        // Initialize with default seeds
-        this.actividades.set(INITIAL_ACTIVITIES);
-        this.alarmas.set(INITIAL_ALARMAS);
-        await this.persistirLocal();
-      }
-    } catch {
-      this.actividades.set(INITIAL_ACTIVITIES);
-      this.alarmas.set(INITIAL_ALARMAS);
+    // Always clear memory activities when user context changes
+    this.actividades.set([]);
+    this.alarmas.set({});
+
+    if (!isGuest) {
+      // 1. Authenticated user: Load local cache for this specific UID
+      await this.cargarDatosUsuario(uid);
+      // 2. Real-time Firestore sync
+      this.subscribirFirestore(uid);
+    } else {
+      // Guest user: Load guest local cache
+      await this.cargarDatosUsuario('guest');
     }
   }
 
-  private async persistirLocal() {
+  private async cargarDatosUsuario(uid: string) {
+    try {
+      const actKey = this.STORAGE_ACTIVITIES_PREFIX + uid;
+      const almKey = this.STORAGE_ALARMAS_PREFIX + uid;
+      const { value: actStr } = await Preferences.get({ key: actKey });
+      const { value: almStr } = await Preferences.get({ key: almKey });
+
+      if (actStr) {
+        const parsedActs: Actividad[] = JSON.parse(actStr);
+        // Exclude any legacy mock data
+        const filtered = parsedActs.filter(a => a.id_usuario !== 'seed_user');
+        this.actividades.set(filtered);
+      } else {
+        this.actividades.set([]);
+      }
+
+      if (almStr) {
+        this.alarmas.set(JSON.parse(almStr));
+      } else {
+        this.alarmas.set({});
+      }
+    } catch (e) {
+      console.warn('Error loading user activities:', e);
+      this.actividades.set([]);
+      this.alarmas.set({});
+    }
+  }
+
+  private subscribirFirestore(uid: string) {
+    if (!db) return;
+    try {
+      const q = query(collection(db, 'actividades'), where('id_usuario', '==', uid));
+      this.firestoreUnsubscribe = onSnapshot(q, (snapshot) => {
+        const acts: Actividad[] = [];
+        snapshot.forEach((docSnap) => {
+          acts.push(docSnap.data() as Actividad);
+        });
+        acts.sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+        this.actividades.set(acts);
+        this.persistirLocal(uid);
+      }, (err) => {
+        console.warn('Firestore snapshot listener note (offline or permissions):', err);
+      });
+    } catch (e) {
+      console.warn('Error setting up firestore listener:', e);
+    }
+  }
+
+  private async persistirLocal(uid?: string) {
+    const targetUid = uid || this.currentUserId || 'guest';
     try {
       await Preferences.set({
-        key: this.STORAGE_ACTIVITIES_KEY,
+        key: this.STORAGE_ACTIVITIES_PREFIX + targetUid,
         value: JSON.stringify(this.actividades())
       });
       await Preferences.set({
-        key: this.STORAGE_ALARMAS_KEY,
+        key: this.STORAGE_ALARMAS_PREFIX + targetUid,
         value: JSON.stringify(this.alarmas())
       });
     } catch (e) {
@@ -334,58 +186,98 @@ export class ActividadService {
   }
 
   async toggleCompletado(id: string) {
+    const uid = this.currentUserId || 'guest';
+    let updatedAct: Actividad | null = null;
     this.actividades.update((list) =>
-      list.map((act) => (act.id === id ? { ...act, completado: !act.completado } : act))
+      list.map((act) => {
+        if (act.id === id) {
+          updatedAct = { ...act, completado: !act.completado };
+          return updatedAct;
+        }
+        return act;
+      })
     );
-    await this.persistirLocal();
+    await this.persistirLocal(uid);
+
+    if (db && updatedAct && !this.auth.currentUser()?.isOfflineGuest) {
+      setDoc(doc(db, 'actividades', id), updatedAct).catch(e => console.warn('Firestore update note:', e));
+    }
   }
 
   async agregarActividad(actividad: Omit<Actividad, 'id' | 'creado'>, alarma?: Alarma): Promise<string> {
     const actId = 'act_' + Date.now();
+    const uid = this.currentUserId || 'guest';
     let alarmaId = actividad.alarma_id;
 
     if (alarma) {
       alarmaId = 'alarm_' + Date.now();
       alarma.id = alarmaId;
       this.alarmas.update((map) => ({ ...map, [alarmaId]: alarma }));
-      // Schedule local notification
-      await this.notifications.scheduleActivityAlarm({ ...actividad, id: actId, alarma_id: alarmaId, creado: new Date().toISOString() }, alarma);
+      await this.notifications.scheduleActivityAlarm(
+        { ...actividad, id: actId, alarma_id: alarmaId, creado: new Date().toISOString() },
+        alarma
+      );
+
+      if (db && !this.auth.currentUser()?.isOfflineGuest) {
+        setDoc(doc(db, 'alarmas', alarmaId), alarma).catch(e => console.warn('Firestore alarm write note:', e));
+      }
     }
 
     const nuevaActividad: Actividad = {
       ...actividad,
       id: actId,
+      id_usuario: uid,
       alarma_id: alarmaId,
       creado: new Date().toISOString()
     };
 
     this.actividades.update((list) => [nuevaActividad, ...list]);
-    await this.persistirLocal();
+    await this.persistirLocal(uid);
+
+    if (db && !this.auth.currentUser()?.isOfflineGuest) {
+      setDoc(doc(db, 'actividades', actId), nuevaActividad).catch(e => console.warn('Firestore activity write note:', e));
+    }
+
     return actId;
   }
 
   async actualizarActividad(actividad: Actividad, alarma?: Alarma) {
+    const uid = this.currentUserId || 'guest';
     if (alarma && actividad.alarma_id) {
       this.alarmas.update((map) => ({ ...map, [actividad.alarma_id]: alarma }));
       await this.notifications.scheduleActivityAlarm(actividad, alarma);
+
+      if (db && !this.auth.currentUser()?.isOfflineGuest) {
+        setDoc(doc(db, 'alarmas', actividad.alarma_id), alarma).catch(e => console.warn('Firestore alarm update note:', e));
+      }
     }
 
     this.actividades.update((list) =>
       list.map((item) => (item.id === actividad.id ? actividad : item))
     );
-    await this.persistirLocal();
+    await this.persistirLocal(uid);
+
+    if (db && actividad.id && !this.auth.currentUser()?.isOfflineGuest) {
+      setDoc(doc(db, 'actividades', actividad.id), actividad).catch(e => console.warn('Firestore activity update note:', e));
+    }
   }
 
   async eliminarActividad(id: string) {
+    const uid = this.currentUserId || 'guest';
     const act = this.actividades().find((a) => a.id === id);
     if (act && act.alarma_id) {
       await this.notifications.cancelAlarm(act.id || '', act.alarma_id);
     }
     this.actividades.update((list) => list.filter((item) => item.id !== id));
-    await this.persistirLocal();
+    await this.persistirLocal(uid);
+
+    if (db && !this.auth.currentUser()?.isOfflineGuest) {
+      deleteDoc(doc(db, 'actividades', id)).catch(e => console.warn('Firestore delete note:', e));
+    }
   }
 
   async toggleAlarma(actividadId: string) {
+    const uid = this.currentUserId || 'guest';
     const act = this.actividades().find((a) => a.id === actividadId);
     if (!act) return;
 
@@ -402,7 +294,11 @@ export class ActividadService {
       } else {
         await this.notifications.cancelAlarm(act.id || '', act.alarma_id);
       }
-      await this.persistirLocal();
+      await this.persistirLocal(uid);
+
+      if (db && !this.auth.currentUser()?.isOfflineGuest) {
+        setDoc(doc(db, 'alarmas', act.alarma_id), nuevaAlarma).catch(e => console.warn('Firestore alarm toggle note:', e));
+      }
     }
   }
 

@@ -60,7 +60,7 @@ export class AuthService {
               uid: fbUser.uid,
               email: fbUser.email,
               displayName: fbUser.displayName || 'Usuario Lumos',
-              photoURL: fbUser.photoURL || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+              photoURL: fbUser.photoURL || null,
               isOfflineGuest: false,
               lastLogin: new Date().toISOString()
             };
@@ -96,7 +96,7 @@ export class AuthService {
       uid: 'guest_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16),
       email: null,
       displayName: 'Invitado Local',
-      photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+      photoURL: null,
       isOfflineGuest: true,
       lastLogin: new Date().toISOString()
     };
@@ -132,7 +132,7 @@ export class AuthService {
           uid: fbUser.uid,
           email: fbUser.email,
           displayName: fbUser.displayName || googleUser.name,
-          photoURL: fbUser.photoURL || googleUser.imageUrl,
+          photoURL: fbUser.photoURL || googleUser.imageUrl || null,
           isOfflineGuest: false,
           lastLogin: new Date().toISOString()
         };
@@ -150,7 +150,7 @@ export class AuthService {
           uid: fbUser.uid,
           email: fbUser.email,
           displayName: fbUser.displayName || 'Usuario Google',
-          photoURL: fbUser.photoURL || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+          photoURL: fbUser.photoURL || null,
           isOfflineGuest: false,
           lastLogin: new Date().toISOString()
         };
