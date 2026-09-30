@@ -1,0 +1,73 @@
+name: Compilar APK Lumos
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Compilar APK Android Debug
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar Código del Repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Configurar Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Instalar Dependencias del Proyecto
+        run: npm ci --legacy-peer-deps
+
+      - name: Inyectar Credenciales de Entorno (.env)
+        run: |
+          if [ -n "${{ secrets.ENV_FILE }}" ]; then
+            echo "${{ secrets.ENV_FILE }}" > .env
+            echo "✅ Archivo .env restaurado desde GitHub Secrets"
+          fi
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
+            echo "✅ Archivo google-services.json restaurado desde GitHub Secrets"
+          fi
+
+      - name: Compilar Frontend Angular
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: npm run build
+
+      - name: Sincronizar Plataforma Android Capacitor
+        run: npx cap sync android
+
+      - name: Otorgar Permisos de Ejecución a Gradlew
+        run: chmod +x ./android/gradlew
+
+      - name: Compilar APK Debug con Gradle
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Publicar Artefacto APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumos-agenda-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
