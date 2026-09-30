@@ -38,13 +38,13 @@ function getVar(key, defaultValue = '') {
 }
 
 const config = {
-  apiKey: getVar('FIREBASE_API_KEY', 'AIzaSyB_4ShS_ImjN-sn66ymCJyeAKoa_F0ZUk8'),
-  authDomain: getVar('FIREBASE_AUTH_DOMAIN', 'lumos-agenda-app.firebaseapp.com'),
-  projectId: getVar('FIREBASE_PROJECT_ID', 'lumos-agenda'),
-  storageBucket: getVar('FIREBASE_STORAGE_BUCKET', 'lumos-agenda.firebasestorage.app'),
-  messagingSenderId: getVar('FIREBASE_MESSAGING_SENDER_ID', '160633031688'),
-  appId: getVar('FIREBASE_APP_ID', '1:160633031688:web:1f14ec696475b1f6ae55bd'),
-  googleWebClientId: getVar('GOOGLE_WEB_CLIENT_ID', '160633031688-8dcn55vbug7s0ei3p3b7ekk89b4coqq5.apps.googleusercontent.com')
+  apiKey: getVar('FIREBASE_API_KEY', ''),
+  authDomain: getVar('FIREBASE_AUTH_DOMAIN', ''),
+  projectId: getVar('FIREBASE_PROJECT_ID', ''),
+  storageBucket: getVar('FIREBASE_STORAGE_BUCKET', ''),
+  messagingSenderId: getVar('FIREBASE_MESSAGING_SENDER_ID', ''),
+  appId: getVar('FIREBASE_APP_ID', ''),
+  googleWebClientId: getVar('GOOGLE_WEB_CLIENT_ID', '')
 };
 
 function generateContent(isProd) {
@@ -71,5 +71,27 @@ if (!fs.existsSync(envDir)) {
 
 fs.writeFileSync(targetDev, generateContent(false), 'utf-8');
 fs.writeFileSync(targetProd, generateContent(true), 'utf-8');
+
+// Inyectar dinámicamente server_client_id en Android strings.xml si está disponible en .env
+const stringsXmlPath = path.join(rootDir, 'android', 'app', 'src', 'main', 'res', 'values', 'strings.xml');
+if (fs.existsSync(stringsXmlPath) && config.googleWebClientId) {
+  try {
+    let stringsContent = fs.readFileSync(stringsXmlPath, 'utf-8');
+    if (stringsContent.includes('name="server_client_id"')) {
+      stringsContent = stringsContent.replace(
+        /<string name="server_client_id">.*?<\/string>/,
+        `<string name="server_client_id">${config.googleWebClientId}</string>`
+      );
+    } else {
+      stringsContent = stringsContent.replace(
+        '</resources>',
+        `    <string name="server_client_id">${config.googleWebClientId}</string>\n</resources>`
+      );
+    }
+    fs.writeFileSync(stringsXmlPath, stringsContent, 'utf-8');
+  } catch (e) {
+    console.warn('No se pudo actualizar strings.xml:', e.message);
+  }
+}
 
 console.log('✅ [Lumos] Archivos environment.ts y environment.prod.ts generados exitosamente desde .env');
