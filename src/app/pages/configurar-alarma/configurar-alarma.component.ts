@@ -24,7 +24,12 @@ import { Alarma } from '../../models/alarma.model';
           </span>
         </div>
 
-        <div class="w-8 h-8 rounded-full overflow-hidden border border-neutral-300">
+        <button
+          type="button"
+          (click)="openProfile.emit()"
+          class="w-8 h-8 rounded-full overflow-hidden border border-neutral-300 ring-2 ring-transparent hover:ring-neutral-200 transition-all select-none cursor-pointer"
+          title="Cuenta de usuario"
+        >
           @if (auth.currentUser()?.photoURL) {
             <img
               [src]="auth.currentUser()?.photoURL"
@@ -39,7 +44,7 @@ import { Alarma } from '../../models/alarma.model';
               </svg>
             </div>
           }
-        </div>
+        </button>
       </header>
 
       <!-- Selected Activity Summary Card -->
@@ -442,6 +447,7 @@ export class ConfigurarAlarmaComponent implements OnInit {
 
   readonly actividad = input.required<Actividad>();
   readonly configSaved = output<void>();
+  readonly openProfile = output<void>();
 
   readonly alarmsList = signal<Alarma[]>([]);
   readonly activeAlarmIndex = signal<number>(0);
@@ -621,6 +627,18 @@ export class ConfigurarAlarmaComponent implements OnInit {
   async saveAllAlarmConfigurations() {
     const act = this.actividad();
     const alarms = this.alarmsList();
+
+    if (alarms.length > 0) {
+      const primary = alarms[0];
+      if (primary.tono) {
+        await this.soundService.selectTone({
+          id: 'custom_saved_' + Date.now(),
+          name: primary.tono_nombre || this.soundService.resolveToneName(primary.tono),
+          uri: primary.tono,
+          isCustom: this.isCustomFile(primary.tono)
+        });
+      }
+    }
 
     await this.actividadService.guardarAlarmasActividad(act, alarms);
     this.soundService.stopPreview();

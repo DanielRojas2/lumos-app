@@ -181,6 +181,7 @@ export class HoyComponent {
 
   readonly addActivityClick = output<void>();
   readonly editActivityClick = output<Actividad>();
+  readonly openProfileClick = output<void>();
 
   readonly totalActivitiesCount = computed(() => {
     return this.actividadService.actividadesDelDia().length;
@@ -211,24 +212,10 @@ export class HoyComponent {
   }
 
   isActivityCurrentNow(act: Actividad): boolean {
-    // Flag for second card in seed or current hour
     return act.id === 'act_2';
   }
 
-  async onAvatarClick() {
-    const user = this.auth.currentUser();
-    if (user?.isOfflineGuest) {
-      if (confirm('¿Deseas vincular tu cuenta con Google para sincronizar tus actividades en la nube?')) {
-        try {
-          await this.auth.loginWithGoogle();
-        } catch (e: any) {
-          alert(e.message || 'Error al iniciar sesión con Google.');
-        }
-      }
-    } else {
-      if (confirm(`Conectado como: ${user?.displayName || user?.email}\n¿Deseas cerrar sesión?`)) {
-        await this.auth.logout();
-      }
-    }
+  onAvatarClick() {
+    this.openProfileClick.emit();
   }
 }

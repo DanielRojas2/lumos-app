@@ -7,6 +7,7 @@ import { Actividad, CategoriaActividad } from '../../models/actividad.model';
 import { Alarma } from '../../models/alarma.model';
 import { CategoryChipComponent } from '../../components/category-chip/category-chip.component';
 import { AuthService } from '../../services/auth.service';
+import { SoundPickerService } from '../../services/sound-picker.service';
 
 @Component({
   selector: 'app-crear-actividad',
@@ -28,7 +29,12 @@ import { AuthService } from '../../services/auth.service';
           </span>
         </div>
 
-        <div class="w-8 h-8 rounded-full overflow-hidden border border-neutral-300">
+        <button
+          type="button"
+          (click)="openProfile.emit()"
+          class="w-8 h-8 rounded-full overflow-hidden border border-neutral-300 ring-2 ring-transparent hover:ring-neutral-200 transition-all select-none cursor-pointer"
+          title="Cuenta de usuario"
+        >
           @if (auth.currentUser()?.photoURL) {
             <img
               [src]="auth.currentUser()?.photoURL"
@@ -43,7 +49,7 @@ import { AuthService } from '../../services/auth.service';
               </svg>
             </div>
           }
-        </div>
+        </button>
       </header>
 
       <!-- Subtitle and Title with Reset Button -->
@@ -300,6 +306,43 @@ import { AuthService } from '../../services/auth.service';
                   </button>
                 }
               </div>
+
+              <!-- Selected Alarm Tone Card -->
+              <div class="p-2.5 bg-neutral-50/90 rounded-xl border border-neutral-200 flex items-center justify-between mt-2.5">
+                <div class="flex items-center gap-2.5 truncate">
+                  <button
+                    type="button"
+                    (click)="toggleTonePreview()"
+                    class="w-8 h-8 rounded-lg bg-[#FF3300] text-white flex items-center justify-center hover:bg-[#E02E00] shadow-2xs active:scale-95 transition-all shrink-0"
+                    title="Escuchar tono"
+                  >
+                    @if (soundPicker.isPlaying()) {
+                      <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                      </svg>
+                    } @else {
+                      <svg class="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                      </svg>
+                    }
+                  </button>
+                  <div class="truncate">
+                    <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">Tono de Alarma</span>
+                    <span class="text-xs font-bold text-neutral-800 truncate block">
+                      {{ selectedToneName() }}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="pickCustomTone()"
+                  class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-neutral-300 bg-white hover:bg-neutral-100 text-neutral-800 transition-colors shrink-0 ml-2"
+                >
+                  Cambiar
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -379,16 +422,21 @@ export class CrearActividadComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly actividadService = inject(ActividadService);
   readonly auth = inject(AuthService);
+  readonly soundPicker = inject(SoundPickerService);
   readonly i18n = inject(I18nService);
 
   readonly editActivity = input<Actividad | null>(null);
   readonly formSaved = output<void>();
   readonly cancel = output<void>();
   readonly openAlarmConfig = output<void>();
+  readonly openProfile = output<void>();
 
   readonly isAllDay = signal<boolean>(false);
   readonly hasAlarm = signal<boolean>(true);
   readonly anticipationMinutes = signal<number>(15);
+
+  readonly selectedToneUri = signal<string>('default_radar_suave');
+  readonly selectedToneName = signal<string>('Radar Suave (Lumos)');
 
   alarmOptions = [
     { label: 'En el momento', minutes: 0 },
@@ -421,6 +469,18 @@ export class CrearActividadComponent implements OnInit {
 
     if (act) {
       this.hasAlarm.set(!!act.alarma_id);
+      if (act.alarma_id) {
+        const al = this.actividadService.getAlarmaById(act.alarma_id);
+        if (al) {
+          this.selectedToneUri.set(al.tono);
+          this.selectedToneName.set(this.soundPicker.resolveToneName(al.tono, al.tono_nombre));
+          this.anticipationMinutes.set(al.tiempo_anticipacion);
+        }
+      }
+    } else {
+      const cur = this.soundPicker.currentTone();
+      this.selectedToneUri.set(cur.uri);
+      this.selectedToneName.set(cur.name);
     }
   }
 
@@ -439,6 +499,25 @@ export class CrearActividadComponent implements OnInit {
       notas: ''
     });
     this.hasAlarm.set(true);
+    const cur = this.soundPicker.currentTone();
+    this.selectedToneUri.set(cur.uri);
+    this.selectedToneName.set(cur.name);
+  }
+
+  async pickCustomTone() {
+    const picked = await this.soundPicker.pickLocalFile();
+    if (picked) {
+      this.selectedToneUri.set(picked.uri);
+      this.selectedToneName.set(picked.name);
+    }
+  }
+
+  toggleTonePreview() {
+    if (this.soundPicker.isPlaying()) {
+      this.soundPicker.stopPreview();
+    } else {
+      this.soundPicker.playTone(this.selectedToneUri(), 85, false);
+    }
   }
 
   async onSubmit() {
@@ -453,13 +532,14 @@ export class CrearActividadComponent implements OnInit {
       alarma = {
         id: act?.alarma_id || 'alarm_' + Date.now(),
         tiempo_anticipacion: this.anticipationMinutes(),
-        tono: 'default_radar_suave',
+        tono: this.selectedToneUri() || this.soundPicker.currentTone().uri,
+        tono_nombre: this.selectedToneName() || this.soundPicker.currentTone().name,
         volumen: 85,
         vibracion: true,
         recurrencia: true,
-        frecuencia: 'solo_una_vez' as any,
+        frecuencia: 'una_vez',
         notificacion_push: true,
-        pantalla_completa: false,
+        pantalla_completa: true,
         mensaje: `Comienza en ${this.getAnticipationLabel(this.anticipationMinutes())}${locNote}.`
       };
     }
@@ -492,6 +572,7 @@ export class CrearActividadComponent implements OnInit {
       );
     }
 
+    this.soundPicker.stopPreview();
     this.formSaved.emit();
   }
 

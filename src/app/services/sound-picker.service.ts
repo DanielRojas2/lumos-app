@@ -17,8 +17,10 @@ export class SoundPickerService {
   private audioElement: HTMLAudioElement | null = null;
   private audioCtx: AudioContext | null = null;
   private isSynthesizing = false;
+  private alarmLoopTimer: any = null;
 
   private readonly STORAGE_TONES_KEY = 'lumos_saved_custom_tones';
+  private readonly STORAGE_SELECTED_TONE_KEY = 'lumos_saved_selected_tone';
 
   readonly isPlaying = signal<boolean>(false);
   readonly currentTone = signal<SoundTone>({
@@ -31,14 +33,16 @@ export class SoundPickerService {
   readonly availableTones = signal<SoundTone[]>([
     { id: 'radar_suave', name: 'Radar Suave (Lumos)', uri: 'default_radar_suave', isCustom: false },
     { id: 'pulsar_celestial', name: 'Pulsar Celestial', uri: 'default_pulsar', isCustom: false },
-    { id: 'precision_kinetica', name: 'Precisión Cinética', uri: 'default_kinetic', isCustom: false }
+    { id: 'precision_kinetica', name: 'Precisión Cinética (Alarma)', uri: 'default_kinetic', isCustom: false }
   ]);
 
   constructor() {
     if (typeof window !== 'undefined') {
       this.audioElement = new Audio();
       this.audioElement.onended = () => {
-        this.isPlaying.set(false);
+        if (!this.audioElement?.loop) {
+          this.isPlaying.set(false);
+        }
       };
       this.loadSavedTones();
     }
@@ -46,14 +50,31 @@ export class SoundPickerService {
 
   private async loadSavedTones() {
     try {
-      const { value } = await Preferences.get({ key: this.STORAGE_TONES_KEY });
-      if (value) {
-        const customTones: SoundTone[] = JSON.parse(value);
+      // 1. Load custom tones
+      const { value: customStr } = await Preferences.get({ key: this.STORAGE_TONES_KEY });
+      if (customStr) {
+        const customTones: SoundTone[] = JSON.parse(customStr);
         if (customTones && customTones.length > 0) {
-          this.availableTones.update(existing => {
-            const ids = new Set(existing.map(t => t.id));
-            const newTones = customTones.filter(t => !ids.has(t.id));
+          this.availableTones.update((existing) => {
+            const ids = new Set(existing.map((t) => t.id));
+            const newTones = customTones.filter((t) => !ids.has(t.id));
             return [...existing, ...newTones];
+          });
+        }
+      }
+
+      // 2. Load user's persisted preferred tone
+      const { value: selectedStr } = await Preferences.get({ key: this.STORAGE_SELECTED_TONE_KEY });
+      if (selectedStr) {
+        const savedTone: SoundTone = JSON.parse(selectedStr);
+        if (savedTone && savedTone.uri) {
+          this.currentTone.set(savedTone);
+          // Ensure it exists in availableTones
+          this.availableTones.update((list) => {
+            if (!list.some((t) => t.uri === savedTone.uri)) {
+              return [...list, savedTone];
+            }
+            return list;
           });
         }
       }
@@ -64,18 +85,34 @@ export class SoundPickerService {
 
   async saveCustomTone(tone: SoundTone) {
     try {
-      this.availableTones.update(list => {
-        const filtered = list.filter(t => t.id !== tone.id && t.uri !== tone.uri);
+      this.availableTones.update((list) => {
+        const filtered = list.filter((t) => t.id !== tone.id && t.uri !== tone.uri);
         return [...filtered, tone];
       });
 
-      const customs = this.availableTones().filter(t => t.isCustom);
+      const customs = this.availableTones().filter((t) => t.isCustom);
       await Preferences.set({
         key: this.STORAGE_TONES_KEY,
         value: JSON.stringify(customs)
       });
+
+      // Also set and persist as current tone
+      await this.selectTone(tone);
     } catch (e) {
       console.warn('Error saving custom tone to storage:', e);
+    }
+  }
+
+  async selectTone(tone: SoundTone) {
+    this.stopPreview();
+    this.currentTone.set(tone);
+    try {
+      await Preferences.set({
+        key: this.STORAGE_SELECTED_TONE_KEY,
+        value: JSON.stringify(tone)
+      });
+    } catch (e) {
+      console.warn('Error saving selected tone:', e);
     }
   }
 
@@ -94,7 +131,7 @@ export class SoundPickerService {
           const file = result.files[0];
           let audioUri = '';
 
-          // Prefer data URI (Base64) so it permanently persists across sessions
+          // Prefer data URI (Base64) or permanent converted file URL
           if (file.data) {
             const mime = file.mimeType || 'audio/mpeg';
             audioUri = `data:${mime};base64,${file.data}`;
@@ -112,11 +149,10 @@ export class SoundPickerService {
           };
 
           await this.saveCustomTone(customTone);
-          this.currentTone.set(customTone);
 
           // Audio preview
           setTimeout(() => {
-            this.playTone(customTone.uri, 85);
+            this.playTone(customTone.uri, 85, false);
           }, 150);
 
           return customTone;
@@ -143,10 +179,9 @@ export class SoundPickerService {
                 };
 
                 await this.saveCustomTone(customTone);
-                this.currentTone.set(customTone);
 
                 setTimeout(() => {
-                  this.playTone(customTone.uri, 85);
+                  this.playTone(customTone.uri, 85, false);
                 }, 150);
 
                 resolve(customTone);
@@ -171,18 +206,13 @@ export class SoundPickerService {
     return null;
   }
 
-  selectTone(tone: SoundTone) {
-    this.stopPreview();
-    this.currentTone.set(tone);
-  }
-
   resolveToneName(uri: string, fallbackName?: string): string {
-    if (fallbackName) return fallbackName;
-    if (!uri || uri === 'default_radar_suave') return 'Radar Suave (Predeterminado)';
+    if (fallbackName && fallbackName.trim() !== '') return fallbackName;
+    if (!uri || uri === 'default_radar_suave') return 'Radar Suave (Lumos)';
     if (uri === 'default_pulsar') return 'Pulsar Celestial';
-    if (uri === 'default_kinetic') return 'Precisión Cinética';
+    if (uri === 'default_kinetic') return 'Precisión Cinética (Alarma)';
 
-    const match = this.availableTones().find(t => t.uri === uri);
+    const match = this.availableTones().find((t) => t.uri === uri || t.id === uri);
     if (match) return match.name;
 
     if (uri.startsWith('data:') || uri.startsWith('file:') || uri.includes('/') || uri.includes('\\')) {
@@ -191,63 +221,86 @@ export class SoundPickerService {
     return uri;
   }
 
-  async playTone(uri: string, volumePercent: number = 85) {
+  getNativeSoundFileName(uri: string): string {
+    if (!uri || uri === 'default_radar_suave' || uri === 'radar_suave') return 'radar_suave.wav';
+    if (uri === 'default_pulsar' || uri === 'pulsar_celestial') return 'pulsar_celestial.wav';
+    if (uri === 'default_kinetic' || uri === 'precision_kinetica') return 'alarm_sound.wav';
+    if (uri.endsWith('.wav') || uri.endsWith('.mp3')) {
+      const parts = uri.split('/');
+      return parts[parts.length - 1];
+    }
+    return 'radar_suave.wav';
+  }
+
+  async playTone(uri: string, volumePercent: number = 85, isAlarmLoop: boolean = false) {
     if (this.isPlaying()) {
       this.stopPreview();
-      return;
+      if (!isAlarmLoop) return;
     }
 
     const volume = Math.max(0, Math.min(1, volumePercent / 100));
 
-    // If it's a data URI, blob or web URL:
-    if (uri && (uri.startsWith('data:') || uri.startsWith('http') || uri.startsWith('blob:') || uri.endsWith('.mp3') || uri.endsWith('.wav'))) {
-      try {
-        if (!this.audioElement) {
-          this.audioElement = new Audio();
-        }
-
-        let audioSrc = uri;
-        if (Capacitor.isNativePlatform() && !audioSrc.startsWith('data:') && !audioSrc.startsWith('http') && !audioSrc.startsWith('blob:')) {
-          audioSrc = Capacitor.convertFileSrc(audioSrc);
-        }
-
-        this.audioElement.pause();
-        this.audioElement.currentTime = 0;
-        this.audioElement.src = audioSrc;
-        this.audioElement.volume = volume;
-
-        this.audioElement.onended = () => {
-          this.isPlaying.set(false);
-        };
-
-        this.audioElement.onerror = (e) => {
-          console.warn('Audio playback error, falling back to synthesized tone:', e);
-          this.isPlaying.set(false);
-          this.playSynthesizedTone('radar_suave', volume);
-        };
-
-        await this.audioElement.play();
-        this.isPlaying.set(true);
-        return;
-      } catch (e) {
-        console.warn('Custom audio playback exception:', e);
-        this.isPlaying.set(false);
-      }
+    // Resolve audio source (check preset WAV files from public/tones/ on web)
+    let audioSrc = uri;
+    if (uri === 'default_radar_suave' || !uri) {
+      audioSrc = 'tones/radar_suave.wav';
+    } else if (uri === 'default_pulsar') {
+      audioSrc = 'tones/pulsar_celestial.wav';
+    } else if (uri === 'default_kinetic') {
+      audioSrc = 'tones/alarm_sound.wav';
     }
 
-    // Melodic Web Audio Synth fallback or preset
-    const toneId = uri.replace('default_', '');
-    this.playSynthesizedTone(toneId, volume);
+    // Try HTML5 Audio element first (works for data URLs, web URLs, and public tones)
+    try {
+      if (!this.audioElement) {
+        this.audioElement = new Audio();
+      }
+
+      if (Capacitor.isNativePlatform() && !audioSrc.startsWith('data:') && !audioSrc.startsWith('http') && !audioSrc.startsWith('blob:') && !audioSrc.startsWith('tones/')) {
+        audioSrc = Capacitor.convertFileSrc(audioSrc);
+      }
+
+      this.audioElement.pause();
+      this.audioElement.currentTime = 0;
+      this.audioElement.src = audioSrc;
+      this.audioElement.volume = volume;
+      this.audioElement.loop = isAlarmLoop;
+
+      this.audioElement.onended = () => {
+        if (!this.audioElement?.loop) {
+          this.isPlaying.set(false);
+        }
+      };
+
+      this.audioElement.onerror = () => {
+        // Fallback to Web Audio synthesiser if file load fails
+        const toneId = uri.replace('default_', '');
+        this.playSynthesizedTone(toneId, volume, isAlarmLoop);
+      };
+
+      await this.audioElement.play();
+      this.isPlaying.set(true);
+      return;
+    } catch {
+      // Audio playback exception, fallback to synthesizer
+      const toneId = uri.replace('default_', '');
+      this.playSynthesizedTone(toneId, volume, isAlarmLoop);
+    }
   }
 
   async playPreview(volumePercent: number = 85) {
     const cur = this.currentTone();
-    await this.playTone(cur.uri, volumePercent);
+    await this.playTone(cur.uri, volumePercent, false);
   }
 
   stopPreview() {
+    if (this.alarmLoopTimer) {
+      clearInterval(this.alarmLoopTimer);
+      this.alarmLoopTimer = null;
+    }
     if (this.audioElement) {
       try {
+        this.audioElement.loop = false;
         this.audioElement.pause();
         this.audioElement.currentTime = 0;
       } catch {}
@@ -262,42 +315,63 @@ export class SoundPickerService {
     this.isPlaying.set(false);
   }
 
-  private playSynthesizedTone(toneId: string, volume: number) {
-    try {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.audioCtx = new AudioCtxClass();
-      this.isSynthesizing = true;
-      this.isPlaying.set(true);
+  private playSynthesizedTone(toneId: string, volume: number, isAlarmLoop: boolean = false) {
+    const playBurst = () => {
+      try {
+        const AudioCtxClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!this.audioCtx || this.audioCtx.state === 'closed') {
+          this.audioCtx = new AudioCtxClass();
+        }
 
-      const notes = toneId === 'pulsar' || toneId === 'pulsar_celestial'
-        ? [523.25, 659.25, 783.99, 1046.50]
-        : [440, 554.37, 659.25, 880];
+        this.isSynthesizing = true;
+        this.isPlaying.set(true);
 
-      notes.forEach((freq, idx) => {
-        if (!this.audioCtx) return;
-        const osc = this.audioCtx.createOscillator();
-        const gain = this.audioCtx.createGain();
+        const notes =
+          toneId === 'pulsar' || toneId === 'pulsar_celestial'
+            ? [523.25, 659.25, 783.99, 1046.5]
+            : toneId === 'kinetic' || toneId === 'precision_kinetica'
+            ? [880, 880, 880, 1174.66]
+            : [587.33, 880.0, 1174.66];
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime + idx * 0.18);
+        notes.forEach((freq, idx) => {
+          if (!this.audioCtx) return;
+          const osc = this.audioCtx.createOscillator();
+          const gain = this.audioCtx.createGain();
 
-        gain.gain.setValueAtTime(0, this.audioCtx.currentTime + idx * 0.18);
-        gain.gain.linearRampToValueAtTime(volume * 0.3, this.audioCtx.currentTime + idx * 0.18 + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + idx * 0.18 + 0.5);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime + idx * 0.18);
 
-        osc.connect(gain);
-        gain.connect(this.audioCtx.destination);
+          gain.gain.setValueAtTime(0, this.audioCtx.currentTime + idx * 0.18);
+          gain.gain.linearRampToValueAtTime(volume * 0.35, this.audioCtx.currentTime + idx * 0.18 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + idx * 0.18 + 0.45);
 
-        osc.start(this.audioCtx.currentTime + idx * 0.18);
-        osc.stop(this.audioCtx.currentTime + idx * 0.18 + 0.6);
-      });
+          osc.connect(gain);
+          gain.connect(this.audioCtx.destination);
 
-      setTimeout(() => {
+          osc.start(this.audioCtx.currentTime + idx * 0.18);
+          osc.stop(this.audioCtx.currentTime + idx * 0.18 + 0.5);
+        });
+
+        if (!isAlarmLoop) {
+          setTimeout(() => {
+            this.isPlaying.set(false);
+            this.isSynthesizing = false;
+          }, 1200);
+        }
+      } catch {
         this.isPlaying.set(false);
-        this.isSynthesizing = false;
-      }, 1200);
-    } catch {
-      this.isPlaying.set(false);
+      }
+    };
+
+    playBurst();
+
+    if (isAlarmLoop) {
+      if (this.alarmLoopTimer) clearInterval(this.alarmLoopTimer);
+      this.alarmLoopTimer = setInterval(() => {
+        playBurst();
+      }, 1500);
     }
   }
 }

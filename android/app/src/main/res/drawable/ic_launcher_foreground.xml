@@ -5,34 +5,61 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer Orbital Ring -->
+    <!-- Outer Concentric Dashed Ring (radius 39) -->
     <path
-        android:pathData="M54,24 A30,30 0 1,0 54,84 A30,30 0 1,0 54,24 Z"
+        android:pathData="M54,15 A39,39 0 1,0 54,93 A39,39 0 1,0 54,15 Z"
         android:strokeColor="#FFD54F"
-        android:strokeWidth="1.2"
-        android:strokeAlpha="0.75" />
+        android:strokeWidth="0.8"
+        android:strokeAlpha="0.45" />
 
-    <!-- Orbiting Golden Satellite Particle -->
+    <!-- Inner Solid Golden Circular Ring (radius 27) -->
     <path
-        android:pathData="M78.5,43 A2.2,2.2 0 1,0 78.5,47.4 A2.2,2.2 0 1,0 78.5,43 Z"
-        android:fillColor="#FFE082" />
+        android:pathData="M54,27 A27,27 0 1,0 54,81 A27,27 0 1,0 54,27 Z"
+        android:strokeColor="#FFD54F"
+        android:strokeWidth="1.3" />
 
-    <!-- Lumos Central 4-Pointed Star (Golden Isotype) -->
+    <!-- Horizontal Needle Crossbar (x from 27 to 81 at y=54) -->
     <path
-        android:pathData="M 54,31 C 54,45 63,54 77,54 C 63,54 54,63 54,77 C 54,63 45,54 31,54 C 45,54 54,45 54,31 Z"
-        android:fillColor="#FFD54F"
-        android:strokeColor="#FFF9C4"
+        android:pathData="M27,54 L81,54"
+        android:strokeColor="#FFE082"
         android:strokeWidth="0.8" />
 
-    <!-- Star Core Outer Soft Ring -->
+    <!-- Vertical Needle Crossbar (y from 27 to 81 at x=54) -->
     <path
-        android:pathData="M54,48.5 A5.5,5.5 0 1,0 54,59.5 A5.5,5.5 0 1,0 54,48.5 Z"
+        android:pathData="M54,27 L54,81"
         android:strokeColor="#FFE082"
-        android:strokeWidth="0.6"
-        android:strokeAlpha="0.5" />
+        android:strokeWidth="0.8" />
 
-    <!-- Radiant Star Core Spark -->
+    <!-- Central 4-Pointed Flared Golden Star Body -->
     <path
-        android:pathData="M54,51.2 A2.8,2.8 0 1,0 54,56.8 A2.8,2.8 0 1,0 54,51.2 Z"
+        android:pathData="M 54,27 C 54,45 63,54 81,54 C 63,54 54,63 54,81 C 54,63 45,54 27,54 C 45,54 54,45 54,27 Z"
+        android:fillColor="#FFD54F"
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="0.5" />
+
+    <!-- Orbiting Satellite Glow Aura (Lower-Left at 210°: x=30.6, y=67.5) -->
+    <path
+        android:pathData="M30.6,63.5 A4,4 0 1,0 30.6,71.5 A4,4 0 1,0 30.6,63.5 Z"
+        android:fillColor="#FFA000"
+        android:fillAlpha="0.4" />
+
+    <!-- Orbiting Golden Satellite Particle Body -->
+    <path
+        android:pathData="M30.6,65.3 A2.2,2.2 0 1,0 30.6,69.7 A2.2,2.2 0 1,0 30.6,65.3 Z"
+        android:fillColor="#FFE082" />
+
+    <!-- Satellite Core Dot -->
+    <path
+        android:pathData="M30.6,66.5 A1,1 0 1,0 30.6,68.5 A1,1 0 1,0 30.6,66.5 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Center Radiant Core Halo -->
+    <path
+        android:pathData="M54,51.8 A2.2,2.2 0 1,0 54,56.2 A2.2,2.2 0 1,0 54,51.8 Z"
+        android:fillColor="#FFFDE7" />
+
+    <!-- Center Light Core Spark -->
+    <path
+        android:pathData="M54,52.8 A1.2,1.2 0 1,0 54,55.2 A1.2,1.2 0 1,0 54,52.8 Z"
         android:fillColor="#FFFFFF" />
 </vector>

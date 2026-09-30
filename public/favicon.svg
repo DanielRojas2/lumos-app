@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <!-- Cosmic Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#141E33" />
+      <stop offset="70%" stop-color="#0A0F1D" />
+      <stop offset="100%" stop-color="#060912" />
+    </radialGradient>
+
+    <!-- Golden Star Gradient -->
+    <radialGradient id="starGrad" cx="50%" cy="50%" r="45%">
+      <stop offset="0%" stop-color="#FFF59D" />
+      <stop offset="30%" stop-color="#FFD54F" />
+      <stop offset="75%" stop-color="#FFA000" />
+      <stop offset="100%" stop-color="#FF8F00" />
+    </radialGradient>
+
+    <!-- Ring Gradient -->
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="50%" stop-color="#FFD54F" />
+      <stop offset="100%" stop-color="#F57F17" />
+    </linearGradient>
+
+    <!-- Satellite Glow Filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Deep Cosmic Canvas Background -->
+  <rect width="200" height="200" rx="42" fill="url(#bgGrad)" />
+
+  <!-- Outer Concentric Dashed Ring -->
+  <circle
+    cx="100"
+    cy="100"
+    r="78"
+    fill="none"
+    stroke="#FFD54F"
+    stroke-width="1.2"
+    stroke-dasharray="4 6"
+    opacity="0.45"
+  />
+
+  <!-- Inner Solid Golden Circular Ring -->
+  <circle
+    cx="100"
+    cy="100"
+    r="54"
+    fill="none"
+    stroke="url(#ringGrad)"
+    stroke-width="2.2"
+  />
+
+  <!-- Horizontal & Vertical Needle Crossbars (touching the inner ring) -->
+  <line x1="46" y1="100" x2="154" y2="100" stroke="#FFE082" stroke-width="1.4" opacity="0.9" />
+  <line x1="100" y1="46" x2="100" y2="154" stroke="#FFE082" stroke-width="1.4" opacity="0.9" />
+
+  <!-- Central 4-Pointed Flared Star Body -->
+  <!-- Curves pinch concave from points at distance 54 to center at ~16 -->
+  <path
+    d="M 100,46
+       C 100,82 118,100 154,100
+       C 118,100 100,118 100,154
+       C 100,118 82,100 46,100
+       C 82,100 100,82 100,46 Z"
+    fill="url(#starGrad)"
+    stroke="#FFF9C4"
+    stroke-width="0.8"
+  />
+
+  <!-- Orbiting Golden Satellite Particle (Lower Left ~210° on radius 54) -->
+  <!-- x = 100 - 54 * cos(30°) = 100 - 46.77 = 53.23; y = 100 + 54 * sin(30°) = 100 + 27 = 127 -->
+  <circle cx="53.2" cy="127" r="10" fill="#FFD54F" opacity="0.35" filter="url(#glow)" />
+  <circle cx="53.2" cy="127" r="5.5" fill="#FFE082" />
+  <circle cx="53.2" cy="127" r="2.5" fill="#FFFFFF" />
+
+  <!-- Center Luminous Sparkle Dot Core -->
+  <circle cx="100" cy="100" r="4.2" fill="#FFFDE7" />
+  <circle cx="100" cy="100" r="2" fill="#FFFFFF" />
+</svg>

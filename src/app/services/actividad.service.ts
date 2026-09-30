@@ -116,17 +116,25 @@ export class ActividadService {
       // 2. Real-time Firestore sync
       this.subscribirFirestore(uid);
     } else {
-      // Guest user: Load guest local cache
-      await this.cargarDatosUsuario('guest');
+      // Guest user: Load guest local cache for the active guest UID
+      await this.cargarDatosUsuario(uid);
     }
   }
 
   private async cargarDatosUsuario(uid: string) {
     try {
-      const actKey = this.STORAGE_ACTIVITIES_PREFIX + uid;
-      const almKey = this.STORAGE_ALARMAS_PREFIX + uid;
-      const { value: actStr } = await Preferences.get({ key: actKey });
-      const { value: almStr } = await Preferences.get({ key: almKey });
+      let actKey = this.STORAGE_ACTIVITIES_PREFIX + uid;
+      let almKey = this.STORAGE_ALARMAS_PREFIX + uid;
+      let { value: actStr } = await Preferences.get({ key: actKey });
+      let { value: almStr } = await Preferences.get({ key: almKey });
+
+      // Fallback check for legacy guest data
+      if (!actStr && uid.startsWith('guest_')) {
+        const legacyAct = await Preferences.get({ key: this.STORAGE_ACTIVITIES_PREFIX + 'guest' });
+        const legacyAlm = await Preferences.get({ key: this.STORAGE_ALARMAS_PREFIX + 'guest' });
+        if (legacyAct.value) actStr = legacyAct.value;
+        if (legacyAlm.value) almStr = legacyAlm.value;
+      }
 
       if (actStr) {
         const parsedActs: Actividad[] = JSON.parse(actStr);

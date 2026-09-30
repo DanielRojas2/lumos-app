@@ -2,6 +2,7 @@ import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SplashIntroComponent } from './components/splash-intro/splash-intro.component';
 import { BottomNavComponent, ActiveTab } from './components/bottom-nav/bottom-nav.component';
+import { ProfileModalComponent } from './components/profile-modal/profile-modal.component';
 import { HoyComponent } from './pages/hoy/hoy.component';
 import { CrearActividadComponent } from './pages/crear-actividad/crear-actividad.component';
 import { ConfigurarAlarmaComponent } from './pages/configurar-alarma/configurar-alarma.component';
@@ -16,6 +17,7 @@ import { Actividad } from './models/actividad.model';
     CommonModule,
     SplashIntroComponent,
     BottomNavComponent,
+    ProfileModalComponent,
     HoyComponent,
     CrearActividadComponent,
     ConfigurarAlarmaComponent
@@ -29,6 +31,7 @@ export class App {
 
   readonly showSplash = signal<boolean>(true);
   readonly activeTab = signal<ActiveTab>('hoy');
+  readonly showProfileModal = signal<boolean>(false);
 
   readonly selectedActivityForEdit = signal<Actividad | null>(null);
   readonly selectedActivityForAlarm = signal<Actividad | null>(null);
@@ -81,5 +84,13 @@ export class App {
   onAlarmConfigSaved() {
     this.activeTab.set('hoy');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  openProfile() {
+    this.showProfileModal.set(true);
+  }
+
+  closeProfile() {
+    this.showProfileModal.set(false);
   }
 }

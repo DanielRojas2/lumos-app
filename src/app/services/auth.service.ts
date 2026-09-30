@@ -66,9 +66,12 @@ export class AuthService {
             };
             this.currentUser.set(appUser);
             await Preferences.set({ key: this.AUTH_USER_KEY, value: JSON.stringify(appUser) });
-          } else if (!this.currentUser() || !this.currentUser()?.isOfflineGuest) {
-            // No firebase user, initialize or restore guest session
-            await this.initGuestSession();
+          } else {
+            // No active Firebase user session in memory
+            const { value: cachedUserStr } = await Preferences.get({ key: this.AUTH_USER_KEY });
+            if (!cachedUserStr) {
+              await this.initGuestSession();
+            }
           }
         });
       } else {
@@ -168,14 +171,23 @@ export class AuthService {
   async logout(): Promise<void> {
     try {
       if (Capacitor.isNativePlatform()) {
-        await GoogleAuth.signOut().catch(() => {});
+        try {
+          await GoogleAuth.signOut();
+        } catch (gErr) {
+          console.warn('GoogleAuth signOut notice:', gErr);
+        }
       }
       if (auth) {
-        await fbSignOut(auth).catch(() => {});
+        try {
+          await fbSignOut(auth);
+        } catch (fbErr) {
+          console.warn('Firebase signOut notice:', fbErr);
+        }
       }
     } finally {
       await Preferences.remove({ key: this.AUTH_USER_KEY });
-      await this.initGuestSession();
+      const guest = await this.initGuestSession();
+      this.currentUser.set(guest);
     }
   }
 }

@@ -1,4 +1,24 @@
-<main class="min-h-screen bg-[#FAFAFA] text-neutral-900 font-sans selection:bg-[#FF3300]/20 selection:text-[#FF3300]">
+<main class="min-h-screen bg-[#FAFAFA] text-neutral-900 font-sans selection:bg-[#FF3300]/20 selection:text-[#FF3300] relative">
+  <!-- Subtle Ambient Celestial Watermark in Window Background based on Lumos image -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center opacity-[0.035]">
+    <svg class="w-[580px] h-[580px] text-[#FFD54F]" viewBox="0 0 200 200" fill="none">
+      <!-- Outer Dashed Ring -->
+      <circle cx="100" cy="100" r="78" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 6" />
+      <!-- Inner Solid Ring -->
+      <circle cx="100" cy="100" r="54" stroke="currentColor" stroke-width="2" />
+      <!-- Needle Crossbars -->
+      <line x1="46" y1="100" x2="154" y2="100" stroke="currentColor" stroke-width="1.2" />
+      <line x1="100" y1="46" x2="100" y2="154" stroke="currentColor" stroke-width="1.2" />
+      <!-- Star Body -->
+      <path
+        d="M 100,46 C 100,82 118,100 154,100 C 118,100 100,118 100,154 C 100,118 82,100 46,100 C 82,100 100,82 100,46 Z"
+        fill="currentColor"
+      />
+      <!-- Orbiting Satellite at 210° -->
+      <circle cx="53.2" cy="127" r="6" fill="currentColor" />
+    </svg>
+  </div>
+
   <!-- Splash Intro Cinematic Modal -->
   @if (showSplash()) {
     <app-splash-intro (animationCompleted)="onSplashCompleted()" />
@@ -9,6 +29,7 @@
     <app-hoy
       (addActivityClick)="openCreateActivity()"
       (editActivityClick)="openEditActivity($event)"
+      (openProfileClick)="openProfile()"
     />
   }
 
@@ -19,6 +40,7 @@
       (formSaved)="onActivitySaved()"
       (cancel)="onTabChange('hoy')"
       (openAlarmConfig)="openAlarmFromCreate()"
+      (openProfile)="openProfile()"
     />
   }
 
@@ -28,9 +50,10 @@
       <app-configurar-alarma
         [actividad]="selectedActivityForAlarm()!"
         (configSaved)="onAlarmConfigSaved()"
+        (openProfile)="openProfile()"
       />
     } @else {
-      <div class="py-20 px-4 text-center text-neutral-500">
+      <div class="py-20 px-4 text-center text-neutral-500 relative z-10">
         <p class="text-sm font-medium">Selecciona una actividad desde la vista Hoy para personalizar su alarma.</p>
         <button
           type="button"
@@ -43,44 +66,107 @@
     }
   }
 
-  <!-- Fullscreen In-App Alarm Alert -->
+  <!-- User Account & Session Profile Modal (Clean In-App Logout) -->
+  @if (showProfileModal()) {
+    <app-profile-modal (close)="closeProfile()" />
+  }
+
+  <!-- Fullscreen In-App Alarm Alert (Window based on Celestial Lumos Image) -->
   @if (notificationService.activeAlarm(); as alarm) {
-    <div class="fixed inset-0 z-[120] bg-[#080C16] text-white flex flex-col justify-between p-6 sm:p-10 animate-in fade-in duration-300">
-      <!-- Glow background -->
-      <div class="absolute inset-0 bg-radial from-[#FF3300]/15 via-transparent to-transparent pointer-events-none"></div>
+    <div class="fixed inset-0 z-[120] bg-[#080C16] text-white flex flex-col justify-between p-6 sm:p-10 animate-in fade-in duration-300 select-none">
+      <!-- Glow cosmic background -->
+      <div class="absolute inset-0 bg-radial from-[#FF3300]/20 via-[#FFD54F]/5 to-transparent pointer-events-none"></div>
 
       <!-- Top Branding -->
       <div class="relative z-10 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-2.5 h-2.5 rounded-full bg-[#FF3300] animate-ping"></div>
-          <span class="text-xs uppercase tracking-widest font-mono text-[#FFE082] font-semibold">LUMOS ALARM</span>
+          <div class="w-3 h-3 rounded-full bg-[#FF3300] shadow-[0_0_10px_#FF3300] animate-ping"></div>
+          <span class="text-xs uppercase tracking-widest font-mono text-[#FFE082] font-extrabold">LUMOS ALARM</span>
         </div>
         @if (alarm.categoria) {
-          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border border-neutral-700 bg-neutral-900/80 text-neutral-300">
+          <span class="px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border border-neutral-700 bg-neutral-900/90 text-[#FFD54F]">
             {{ alarm.categoria }}
           </span>
         }
       </div>
 
-      <!-- Center Pulsing Element & Alarm Info -->
+      <!-- Center Lumos Celestial Emblem from image & Alarm Info -->
       <div class="relative z-10 flex flex-col items-center text-center my-auto">
-        <!-- Pulsing Bell Icon & Orbital Ring -->
-        <div class="relative w-32 h-32 flex items-center justify-center mb-8">
-          <div class="absolute inset-0 rounded-full border border-[#FF3300]/40 animate-ping"></div>
-          <div class="absolute inset-2 rounded-full border border-[#FFE082]/30 animate-spin" style="animation-duration: 8s;"></div>
-          <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-[#FF3300] to-[#FF8533] flex items-center justify-center shadow-[0_0_40px_rgba(255,51,0,0.6)]">
-            <svg class="w-10 h-10 text-white animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        <!-- Celestial Star & Orbital Rings Emblem -->
+        <div class="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center mb-6">
+          <!-- Ambient Radial Warm Glow -->
+          <div class="absolute w-40 h-40 rounded-full bg-[#FFD54F]/20 blur-2xl pointer-events-none animate-pulse"></div>
+
+          <!-- SVG Emblem Based on Image -->
+          <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 200 200" fill="none">
+            <!-- Outer Dashed Ring with Slow Ambient Spin -->
+            <circle
+              cx="100"
+              cy="100"
+              r="78"
+              stroke="#FFD54F"
+              stroke-width="1.3"
+              stroke-dasharray="4 6"
+              class="opacity-60 animate-spin"
+              style="animation-duration: 25s;"
+            />
+
+            <!-- Inner Solid Golden Circular Ring -->
+            <circle
+              cx="100"
+              cy="100"
+              r="54"
+              stroke="#FFD54F"
+              stroke-width="2.2"
+              class="drop-shadow-[0_0_8px_rgba(255,213,79,0.7)]"
+            />
+
+            <!-- Needle Crossbars -->
+            <line x1="46" y1="100" x2="154" y2="100" stroke="#FFE082" stroke-width="1.4" opacity="0.9" />
+            <line x1="100" y1="46" x2="100" y2="154" stroke="#FFE082" stroke-width="1.4" opacity="0.9" />
+
+            <!-- Orbiting Glowing Satellite Dot at lower-left (210°) -->
+            <circle cx="53.2" cy="127" r="9" fill="#FFA000" opacity="0.4" class="animate-ping" />
+            <circle cx="53.2" cy="127" r="5" fill="#FFE082" class="shadow-[0_0_10px_#FFE082]" />
+            <circle cx="53.2" cy="127" r="2.2" fill="#FFFFFF" />
+          </svg>
+
+          <!-- Central 4-Pointed Pulsing Golden Star -->
+          <div class="relative z-10 w-28 h-28 flex items-center justify-center animate-celestial-pulse">
+            <svg class="w-full h-full text-[#FFD54F]" viewBox="0 0 100 100" fill="none">
+              <path
+                d="M 50,15 C 50,38 62,50 85,50 C 62,50 50,62 50,85 C 50,62 38,50 15,50 C 38,50 50,38 50,15 Z"
+                fill="url(#alarm-star-grad)"
+                stroke="#FFF9C4"
+                stroke-width="0.8"
+                class="drop-shadow-[0_0_20px_rgba(255,213,79,0.9)]"
+              />
+              <!-- Central Bright Light Core -->
+              <circle cx="50" cy="50" r="4.5" fill="#FFFFFF" class="shadow-[0_0_12px_#FFFFFF]" />
+              <defs>
+                <linearGradient id="alarm-star-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FFF9C4" />
+                  <stop offset="35%" stop-color="#FFD54F" />
+                  <stop offset="70%" stop-color="#F59E0B" />
+                  <stop offset="100%" stop-color="#B45309" />
+                </linearGradient>
+              </defs>
             </svg>
           </div>
         </div>
 
-        <h2 class="text-3xl sm:text-4xl font-black tracking-tight text-white mb-3">
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2 leading-tight">
           {{ alarm.title }}
         </h2>
-        <p class="text-base text-neutral-300 max-w-sm font-medium leading-relaxed">
+        <p class="text-sm text-neutral-300 max-w-sm font-medium leading-relaxed px-4">
           {{ alarm.body }}
         </p>
+
+        <!-- Current Active Alarm Sound / Tone Badge -->
+        <div class="mt-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900/80 border border-neutral-700 text-xs text-[#FFE082]">
+          <span class="w-2 h-2 rounded-full bg-[#FF3300] animate-ping"></span>
+          <span class="font-medium">Sonando alarma continua</span>
+        </div>
       </div>
 
       <!-- Bottom Actions -->

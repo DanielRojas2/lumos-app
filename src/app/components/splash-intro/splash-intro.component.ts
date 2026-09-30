@@ -42,6 +42,9 @@ import { I18nService } from '../../services/i18n.service';
             [style.stroke-dashoffset]="stage() >= 1 ? '0' : '340'"
             stroke-dasharray="340"
           />
+          <!-- Needle Crossbars -->
+          <line x1="34" y1="88" x2="142" y2="88" stroke="#FFE082" stroke-width="1.2" opacity="0.85" />
+          <line x1="88" y1="34" x2="88" y2="142" stroke="#FFE082" stroke-width="1.2" opacity="0.85" />
           <!-- Gradients -->
           <defs>
             <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -57,12 +60,16 @@ import { I18nService } from '../../services/i18n.service';
           </defs>
         </svg>
 
-        <!-- Orbiting Satellite Particle -->
+        <!-- Orbiting Satellite Particle with Glow -->
         <div
           class="absolute inset-0 flex items-center justify-center animate-orbit pointer-events-none"
           [class.opacity-0]="stage() < 1"
         >
-          <div class="w-2.5 h-2.5 rounded-full bg-[#FFE082] shadow-[0_0_12px_#FFE082,0_0_20px_#F59E0B] translate-x-[54px]"></div>
+          <div class="relative flex items-center justify-center translate-x-[54px]">
+            <div class="absolute w-6 h-6 rounded-full bg-[#FFA000]/40 blur-xs"></div>
+            <div class="w-3 h-3 rounded-full bg-[#FFE082] shadow-[0_0_12px_#FFE082,0_0_20px_#F59E0B]"></div>
+            <div class="absolute w-1 h-1 rounded-full bg-white"></div>
+          </div>
         </div>
 
         <!-- Central 4-pointed Star Isotype (Lumos Core) -->
