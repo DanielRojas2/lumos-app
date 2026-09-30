@@ -37,15 +37,23 @@ jobs:
       - name: Instalar Dependencias del Proyecto
         run: npm ci --legacy-peer-deps
 
-      - name: Inyectar Credenciales de Entorno (.env)
+      - name: Inyectar Credenciales de Entorno (.env y google-services.json)
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
+          GOOGLE_SERVICES_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ -n "${{ secrets.ENV_FILE }}" ]; then
-            echo "${{ secrets.ENV_FILE }}" > .env
+          if [ -n "$ENV_FILE_CONTENT" ]; then
+            printf "%s\n" "$ENV_FILE_CONTENT" > .env
             echo "✅ Archivo .env restaurado desde GitHub Secrets"
           fi
-          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-            echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
-            echo "✅ Archivo google-services.json restaurado desde GitHub Secrets"
+          if [ -n "$GOOGLE_SERVICES_CONTENT" ]; then
+            printf "%s\n" "$GOOGLE_SERVICES_CONTENT" > android/app/google-services.json
+            if node -e "JSON.parse(require('fs').readFileSync('android/app/google-services.json', 'utf8'))" 2>/dev/null; then
+              echo "✅ Archivo google-services.json válido restaurado desde GitHub Secrets"
+            else
+              echo "⚠️ El secreto GOOGLE_SERVICES_JSON no contiene un JSON válido. Omitiendo para no interrumpir la compilación..."
+              rm -f android/app/google-services.json
+            fi
           fi
 
       - name: Compilar Frontend Angular
