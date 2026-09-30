@@ -29,9 +29,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Aceptar Licencias de Android SDK
+      - name: Instalar Android SDK 36 y Aceptar Licencias
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" || true
 
       - name: Instalar Dependencias del Proyecto
         run: npm ci --legacy-peer-deps
@@ -73,8 +74,9 @@ jobs:
       - name: Mostrar Log de Error de Gradle
         if: failure()
         run: |
-          echo "::error::Falló la compilación de Gradle. Revisando últimas líneas del log:"
-          tail -n 120 gradle-build.log
+          MSG=$(tail -n 12 gradle-build.log | tr -d '\r' | tr '\n' ' ')
+          echo "::error::$MSG"
+          tail -n 60 gradle-build.log
 
       - name: Subir Log de Gradle si Falla
         if: failure()
