@@ -10,7 +10,8 @@ export interface Actividad {
   hora_inicio: string;                 // Formato militar HH:mm
   hora_fin: string;                    // Formato militar HH:mm
   hora_alarma: string;                 // Timestamp o HH:mm calculada con tiempo_anticipacion
-  alarma_id: string;                   // Referencia al ID del modelo Alarma asociado
+  alarma_id: string;                   // Referencia al ID del modelo Alarma asociado (principal)
+  alarmas_ids?: string[];              // Referencias a múltiples configuraciones de alarmas
   notas: string;                       // Anotaciones adicionales
   completado: boolean;                 // Estado de completitud
   creado: string;                      // ISO 8601 string de auditoría de creación

@@ -305,6 +305,21 @@ import { AuthService } from '../../services/auth.service';
                 </button>
               </div>
             </div>
+
+            <!-- Editable Custom Alarm Message -->
+            <div class="space-y-1 pt-1">
+              <label class="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                Mensaje de Notificación (Opcional)
+              </label>
+              <input
+                type="text"
+                [ngModel]="customAlarmMessage()"
+                (ngModelChange)="customAlarmMessage.set($event)"
+                [ngModelOptions]="{standalone: true}"
+                placeholder="Ej. ¡Comienza en 15 minutos!"
+                class="w-full px-3.5 py-2 bg-neutral-50/80 rounded-xl border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:border-[#FF3300]"
+              />
+            </div>
           }
         </div>
 
@@ -393,6 +408,7 @@ export class CrearActividadComponent implements OnInit {
   readonly isAllDay = signal<boolean>(false);
   readonly hasAlarm = signal<boolean>(true);
   readonly anticipationMinutes = signal<number>(15);
+  readonly customAlarmMessage = signal<string>('');
 
   form!: FormGroup;
 
@@ -412,17 +428,21 @@ export class CrearActividadComponent implements OnInit {
     const todayStr = this.actividadService.selectedDate() || new Date().toISOString().split('T')[0];
 
     this.form = this.fb.group({
-      titulo: [act ? act.titulo : 'Presentación de Proyecto Final', [Validators.required, Validators.minLength(3)]],
-      categoria: [act ? act.categoria : 'clases', Validators.required],
+      titulo: [act ? act.titulo : '', [Validators.required, Validators.minLength(2)]],
+      categoria: [act ? act.categoria : 'trabajo', Validators.required],
       fecha_actividad: [act ? act.fecha_actividad : todayStr, Validators.required],
-      hora_inicio: [act ? act.hora_inicio : '10:00', Validators.required],
-      hora_fin: [act ? act.hora_fin : '12:00', Validators.required],
-      ubicacion: [act ? act.ubicacion : 'Edificio Central, Aula Magna 101', Validators.required],
-      notas: [act ? act.notas : 'Llevar proyector, diapositivas impresas y notas de apoyo.']
+      hora_inicio: [act ? act.hora_inicio : '09:00', Validators.required],
+      hora_fin: [act ? act.hora_fin : '10:00', Validators.required],
+      ubicacion: [act ? act.ubicacion : ''],
+      notas: [act ? act.notas : '']
     });
 
     if (act) {
       this.hasAlarm.set(!!act.alarma_id);
+      if (act.alarma_id) {
+        const alm = this.actividadService.getAlarmaById(act.alarma_id);
+        if (alm?.mensaje) this.customAlarmMessage.set(alm.mensaje);
+      }
     }
   }
 
@@ -445,6 +465,7 @@ export class CrearActividadComponent implements OnInit {
       notas: ''
     });
     this.hasAlarm.set(true);
+    this.customAlarmMessage.set('');
   }
 
   async onSubmit() {
@@ -455,6 +476,8 @@ export class CrearActividadComponent implements OnInit {
 
     let alarma: Alarma | undefined;
     if (this.hasAlarm()) {
+      const locNote = val.ubicacion ? ` en ${val.ubicacion}` : '';
+      const defaultMsg = `Comienza en ${this.anticipationMinutes()} minutos${locNote}.`;
       alarma = {
         id: act?.alarma_id || 'alarm_' + Date.now(),
         tiempo_anticipacion: this.anticipationMinutes(),
@@ -465,7 +488,7 @@ export class CrearActividadComponent implements OnInit {
         frecuencia: 'solo_una_vez' as any,
         notificacion_push: true,
         pantalla_completa: true,
-        mensaje: `Comienza en ${this.anticipationMinutes()} minutos en ${val.ubicacion || 'tu actividad'}.`
+        mensaje: this.customAlarmMessage().trim() || defaultMsg
       };
     }
 

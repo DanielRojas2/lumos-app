@@ -262,11 +262,71 @@ export class ActividadService {
     }
   }
 
+  async guardarAlarmasActividad(actividad: Actividad, alarmas: Alarma[]): Promise<Actividad> {
+    const uid = this.currentUserId || 'guest';
+    const alarmasIds = alarmas.map(a => a.id);
+
+    // Cancel old alarms not present in the new set
+    const oldIds = actividad.alarmas_ids || (actividad.alarma_id ? [actividad.alarma_id] : []);
+    for (const oldId of oldIds) {
+      if (!alarmasIds.includes(oldId)) {
+        await this.notifications.cancelAlarm(actividad.id || '', oldId);
+      }
+    }
+
+    // Update alarms state
+    this.alarmas.update(map => {
+      const updated = { ...map };
+      for (const al of alarmas) {
+        updated[al.id] = al;
+      }
+      return updated;
+    });
+
+    // Schedule notifications
+    for (const al of alarmas) {
+      if (al.notificacion_push) {
+        await this.notifications.scheduleActivityAlarm(actividad, al);
+      } else {
+        await this.notifications.cancelAlarm(actividad.id || '', al.id);
+      }
+
+      if (db && !this.auth.currentUser()?.isOfflineGuest) {
+        setDoc(doc(db, 'alarmas', al.id), al).catch(e => console.warn('Firestore alarm write note:', e));
+      }
+    }
+
+    // Primary alarm time calculation
+    const primary = alarmas[0];
+    let horaAlarma = '';
+    if (primary) {
+      const [h, m] = actividad.hora_inicio.split(':').map(Number);
+      const d = new Date();
+      d.setHours(h, m - primary.tiempo_anticipacion, 0);
+      const rh = String(d.getHours()).padStart(2, '0');
+      const rm = String(d.getMinutes()).padStart(2, '0');
+      horaAlarma = `${rh}:${rm}`;
+    }
+
+    const updatedAct: Actividad = {
+      ...actividad,
+      alarma_id: primary ? primary.id : '',
+      alarmas_ids: alarmasIds,
+      hora_alarma: horaAlarma
+    };
+
+    await this.actualizarActividad(updatedAct);
+    return updatedAct;
+  }
+
   async eliminarActividad(id: string) {
     const uid = this.currentUserId || 'guest';
     const act = this.actividades().find((a) => a.id === id);
-    if (act && act.alarma_id) {
-      await this.notifications.cancelAlarm(act.id || '', act.alarma_id);
+    if (act) {
+      const allAlarmIds = act.alarmas_ids || (act.alarma_id ? [act.alarma_id] : []);
+      for (const almId of allAlarmIds) {
+        await this.notifications.cancelAlarm(act.id || '', almId);
+      }
     }
     this.actividades.update((list) => list.filter((item) => item.id !== id));
     await this.persistirLocal(uid);
