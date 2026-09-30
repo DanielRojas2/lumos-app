@@ -229,22 +229,6 @@ import { AuthService } from '../../services/auth.service';
             [placeholder]="i18n.t().create.locationPlaceholder"
             class="w-full px-3.5 py-2.5 bg-neutral-50/80 rounded-xl border border-neutral-200 text-xs font-medium focus:outline-none focus:border-[#FF3300]"
           />
-
-          <!-- Quick Location Presets -->
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1">
-            @for (preset of locationPresets; track preset.key) {
-              <button
-                type="button"
-                (click)="setLocation(preset.value)"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all select-none border"
-                [ngClass]="form.get('ubicacion')?.value === preset.value
-                  ? 'bg-black text-white border-black shadow-xs'
-                  : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'"
-              >
-                {{ preset.label }}
-              </button>
-            }
-          </div>
         </div>
 
         <!-- Alarm & Reminder Master Section -->
@@ -281,44 +265,41 @@ import { AuthService } from '../../services/auth.service';
             </button>
           </div>
 
-          <!-- Active Alarm Details Row -->
+          <!-- Active Alarm Details & Options Row -->
           @if (hasAlarm()) {
-            <div class="p-3 bg-neutral-50 rounded-xl border border-neutral-200 flex items-center justify-between">
-              <div class="flex items-center gap-2 text-xs font-semibold text-neutral-700">
-                <svg class="w-4 h-4 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-                <span>{{ anticipationMinutes() }} {{ i18n.t().create.minutesBefore }}</span>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold tracking-wider text-[#FF3300] uppercase">
-                  {{ i18n.t().create.active }}
+            <div class="space-y-2 pt-1 border-t border-neutral-100">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-neutral-600 uppercase tracking-wide text-[10px]">
+                  Tiempo de Alarma
                 </span>
                 <button
                   type="button"
                   (click)="openAlarmConfig.emit()"
-                  class="text-xs text-neutral-500 hover:text-neutral-800 underline font-medium"
+                  class="text-xs text-[#FF3300] hover:text-[#E02E00] font-bold flex items-center gap-1"
                 >
-                  Personalizar
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                  <span>Personalizar Tonos</span>
                 </button>
               </div>
-            </div>
 
-            <!-- Editable Custom Alarm Message -->
-            <div class="space-y-1 pt-1">
-              <label class="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
-                Mensaje de Notificación (Opcional)
-              </label>
-              <input
-                type="text"
-                [ngModel]="customAlarmMessage()"
-                (ngModelChange)="customAlarmMessage.set($event)"
-                [ngModelOptions]="{standalone: true}"
-                placeholder="Ej. ¡Comienza en 15 minutos!"
-                class="w-full px-3.5 py-2 bg-neutral-50/80 rounded-xl border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:border-[#FF3300]"
-              />
+              <!-- Available Alarm Anticipation Pills -->
+              <div class="grid grid-cols-3 gap-2">
+                @for (chip of alarmOptions; track chip.minutes) {
+                  <button
+                    type="button"
+                    (click)="anticipationMinutes.set(chip.minutes)"
+                    class="py-2 px-2 rounded-xl text-xs font-semibold tracking-tight transition-all border text-center select-none"
+                    [ngClass]="anticipationMinutes() === chip.minutes
+                      ? 'bg-[#FF3300] text-white border-[#FF3300] shadow-xs font-bold'
+                      : 'bg-neutral-50/80 text-neutral-700 border-neutral-200 hover:bg-neutral-100'"
+                  >
+                    {{ chip.label }}
+                  </button>
+                }
+              </div>
             </div>
           }
         </div>
@@ -408,16 +389,17 @@ export class CrearActividadComponent implements OnInit {
   readonly isAllDay = signal<boolean>(false);
   readonly hasAlarm = signal<boolean>(true);
   readonly anticipationMinutes = signal<number>(15);
-  readonly customAlarmMessage = signal<string>('');
+
+  alarmOptions = [
+    { label: 'En el momento', minutes: 0 },
+    { label: '5 min antes', minutes: 5 },
+    { label: '15 min antes', minutes: 15 },
+    { label: '30 min antes', minutes: 30 },
+    { label: '1 hora antes', minutes: 60 },
+    { label: '1 día antes', minutes: 1440 }
+  ];
 
   form!: FormGroup;
-
-  locationPresets = [
-    { key: 'oficina', label: 'Oficina', value: 'Oficina Central' },
-    { key: 'online', label: 'En línea', value: 'Google Meet' },
-    { key: 'universidad', label: 'Universidad', value: 'Edificio Central, Aula Magna 101' },
-    { key: 'casa', label: 'Casa', value: 'Casa' }
-  ];
 
   ngOnInit() {
     this.initForm();
@@ -439,19 +421,11 @@ export class CrearActividadComponent implements OnInit {
 
     if (act) {
       this.hasAlarm.set(!!act.alarma_id);
-      if (act.alarma_id) {
-        const alm = this.actividadService.getAlarmaById(act.alarma_id);
-        if (alm?.mensaje) this.customAlarmMessage.set(alm.mensaje);
-      }
     }
   }
 
   setCategory(cat: CategoriaActividad) {
     this.form.patchValue({ categoria: cat });
-  }
-
-  setLocation(val: string) {
-    this.form.patchValue({ ubicacion: val });
   }
 
   resetForm() {
@@ -465,7 +439,6 @@ export class CrearActividadComponent implements OnInit {
       notas: ''
     });
     this.hasAlarm.set(true);
-    this.customAlarmMessage.set('');
   }
 
   async onSubmit() {
@@ -477,7 +450,6 @@ export class CrearActividadComponent implements OnInit {
     let alarma: Alarma | undefined;
     if (this.hasAlarm()) {
       const locNote = val.ubicacion ? ` en ${val.ubicacion}` : '';
-      const defaultMsg = `Comienza en ${this.anticipationMinutes()} minutos${locNote}.`;
       alarma = {
         id: act?.alarma_id || 'alarm_' + Date.now(),
         tiempo_anticipacion: this.anticipationMinutes(),
@@ -487,8 +459,8 @@ export class CrearActividadComponent implements OnInit {
         recurrencia: true,
         frecuencia: 'solo_una_vez' as any,
         notificacion_push: true,
-        pantalla_completa: true,
-        mensaje: this.customAlarmMessage().trim() || defaultMsg
+        pantalla_completa: false,
+        mensaje: `Comienza en ${this.getAnticipationLabel(this.anticipationMinutes())}${locNote}.`
       };
     }
 
@@ -521,6 +493,11 @@ export class CrearActividadComponent implements OnInit {
     }
 
     this.formSaved.emit();
+  }
+
+  getAnticipationLabel(minutes: number): string {
+    const opt = this.alarmOptions.find(o => o.minutes === minutes);
+    return opt ? opt.label : `${minutes} min antes`;
   }
 
   private calculateAlarmTimeString(horaInicio: string, anticipacionMinutos: number): string {

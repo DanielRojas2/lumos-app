@@ -1,18 +1,103 @@
-import { Injectable } from '@angular/core';
-import { LocalNotifications, ScheduleOptions, Channel } from '@capacitor/local-notifications';
+import { Injectable, signal, inject } from '@angular/core';
+import { LocalNotifications, ScheduleOptions, Channel, ActionPerformed } from '@capacitor/local-notifications';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 import { Alarma } from '../models/alarma.model';
 import { Actividad } from '../models/actividad.model';
+import { SoundPickerService } from './sound-picker.service';
+
+export interface ActiveAlarmPayload {
+  id: number;
+  title: string;
+  body: string;
+  categoria?: string;
+  tono?: string;
+  volumen?: number;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationService {
   private channelCreated = false;
+  private soundPicker = inject(SoundPickerService);
+
+  readonly activeAlarm = signal<ActiveAlarmPayload | null>(null);
 
   constructor() {
     this.createNotificationChannel();
+    this.registerNotificationListeners();
+  }
+
+  private registerNotificationListeners() {
+    try {
+      LocalNotifications.addListener('localNotificationReceived', (notification) => {
+        this.handleAlarmTriggered({
+          id: notification.id,
+          title: notification.title,
+          body: notification.body,
+          categoria: notification.extra?.categoria,
+          tono: notification.extra?.tono,
+          volumen: notification.extra?.volumen
+        });
+      });
+
+      LocalNotifications.addListener('localNotificationActionPerformed', (action: ActionPerformed) => {
+        this.handleAlarmTriggered({
+          id: action.notification.id,
+          title: action.notification.title,
+          body: action.notification.body,
+          categoria: action.notification.extra?.categoria,
+          tono: action.notification.extra?.tono,
+          volumen: action.notification.extra?.volumen
+        });
+      });
+    } catch (e) {
+      console.warn('Could not register notification listeners:', e);
+    }
+  }
+
+  handleAlarmTriggered(payload: ActiveAlarmPayload) {
+    this.activeAlarm.set(payload);
+    this.triggerHapticFeedback(true);
+    if (payload.tono) {
+      this.soundPicker.playTone(payload.tono, payload.volumen ?? 85);
+    } else {
+      this.soundPicker.playPreview(85);
+    }
+  }
+
+  dismissActiveAlarm() {
+    this.soundPicker.stopPreview();
+    this.activeAlarm.set(null);
+  }
+
+  async snoozeActiveAlarm(minutes: number = 5) {
+    const current = this.activeAlarm();
+    this.dismissActiveAlarm();
+    if (!current) return;
+
+    const snoozeDate = new Date(Date.now() + minutes * 60 * 1000);
+    try {
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: current.id + 1,
+            title: current.title,
+            body: `(Pospuesto) ${current.body}`,
+            schedule: { at: snoozeDate, allowWhileIdle: true },
+            channelId: 'lumos_exact_alarms',
+            extra: {
+              categoria: current.categoria,
+              tono: current.tono,
+              volumen: current.volumen
+            }
+          }
+        ]
+      });
+    } catch (e) {
+      console.warn('Error rescheduling snoozed alarm:', e);
+    }
   }
 
   private async createNotificationChannel() {
@@ -107,7 +192,9 @@ export class NotificationService {
             extra: {
               actividadId: actividad.id,
               alarmaId: alarma.id,
-              categoria: actividad.categoria
+              categoria: actividad.categoria,
+              tono: alarma.tono,
+              volumen: alarma.volumen
             }
           }
         ]

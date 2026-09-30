@@ -223,7 +223,7 @@ import { Alarma } from '../../models/alarma.model';
 
               <div class="truncate">
                 <span class="text-xs font-bold text-neutral-900 block leading-tight truncate">
-                  {{ getToneDisplayName(alm.tono) }}
+                  {{ soundService.resolveToneName(alm.tono, alm.tono_nombre) }}
                 </span>
                 <span class="text-[11px] text-neutral-500">
                   {{ isCustomFile(alm.tono) ? 'Archivo multimedia local' : i18n.t().alarm.toneDesc }}
@@ -407,38 +407,6 @@ import { Alarma } from '../../models/alarma.model';
               <span
                 class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs"
                 [ngClass]="alm.notificacion_push ? 'translate-x-5' : 'translate-x-0'"
-              ></span>
-            </button>
-          </div>
-
-          <!-- Fullscreen Wakeup -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <svg class="w-4 h-4 text-neutral-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="15 3 21 3 21 9"></polyline>
-                <polyline points="9 21 3 21 3 15"></polyline>
-                <line x1="21" y1="3" x2="14" y2="10"></line>
-                <line x1="3" y1="21" x2="10" y2="14"></line>
-              </svg>
-              <div>
-                <span class="text-xs font-bold text-neutral-900 block leading-tight">
-                  {{ i18n.t().alarm.fullScreen }}
-                </span>
-                <span class="text-[11px] text-neutral-500">
-                  {{ i18n.t().alarm.fullScreenDesc }}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              (click)="toggleCurrentFullScreen()"
-              class="w-11 h-6 rounded-full transition-colors relative"
-              [ngClass]="alm.pantalla_completa ? 'bg-[#FF3300]' : 'bg-neutral-200'"
-            >
-              <span
-                class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-xs"
-                [ngClass]="alm.pantalla_completa ? 'translate-x-5' : 'translate-x-0'"
               ></span>
             </button>
           </div>
@@ -634,14 +602,19 @@ export class ConfigurarAlarmaComponent implements OnInit {
 
   toggleSoundPreview() {
     const cur = this.currentAlarm();
-    this.soundService.playPreview(cur?.volumen ?? 85);
+    if (cur) {
+      this.soundService.playTone(cur.tono, cur.volumen);
+    }
   }
 
   async pickCustomMedia() {
-    await this.soundService.pickLocalFile();
-    const curTone = this.soundService.currentTone();
-    if (curTone && curTone.uri) {
-      this.updateActiveAlarm(al => ({ ...al, tono: curTone.uri }));
+    const picked = await this.soundService.pickLocalFile();
+    if (picked && picked.uri) {
+      this.updateActiveAlarm(al => ({
+        ...al,
+        tono: picked.uri,
+        tono_nombre: picked.name
+      }));
     }
   }
 

@@ -5,8 +5,8 @@ import { BottomNavComponent, ActiveTab } from './components/bottom-nav/bottom-na
 import { HoyComponent } from './pages/hoy/hoy.component';
 import { CrearActividadComponent } from './pages/crear-actividad/crear-actividad.component';
 import { ConfigurarAlarmaComponent } from './pages/configurar-alarma/configurar-alarma.component';
-import { ResumenComponent } from './pages/resumen/resumen.component';
 import { ActividadService } from './services/actividad.service';
+import { NotificationService } from './services/notification.service';
 import { Actividad } from './models/actividad.model';
 
 @Component({
@@ -18,14 +18,14 @@ import { Actividad } from './models/actividad.model';
     BottomNavComponent,
     HoyComponent,
     CrearActividadComponent,
-    ConfigurarAlarmaComponent,
-    ResumenComponent
+    ConfigurarAlarmaComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
 export class App {
   readonly actividadService = inject(ActividadService);
+  readonly notificationService = inject(NotificationService);
 
   readonly showSplash = signal<boolean>(true);
   readonly activeTab = signal<ActiveTab>('hoy');

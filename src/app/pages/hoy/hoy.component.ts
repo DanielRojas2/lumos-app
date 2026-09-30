@@ -134,8 +134,8 @@ import { LangToggleComponent } from '../../components/lang-toggle/lang-toggle.co
         />
       </div>
 
-      <!-- Activities List -->
-      <div class="space-y-3.5">
+      <!-- Activities List with guaranteed card separation -->
+      <div class="flex flex-col gap-3.5">
         @for (act of actividadService.actividadesDelDia(); track act.id) {
           <app-activity-card
             [actividad]="act"

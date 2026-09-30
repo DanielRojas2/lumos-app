@@ -7,6 +7,9 @@ import { Alarma } from '../../models/alarma.model';
   selector: 'app-activity-card',
   standalone: true,
   imports: [CommonModule],
+  host: {
+    class: 'block mb-3.5'
+  },
   template: `
     <div
       class="relative bg-white rounded-2xl p-4 transition-all duration-200 border select-none cursor-pointer"

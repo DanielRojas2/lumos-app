@@ -43,9 +43,71 @@
     }
   }
 
-  <!-- View 4: Resumen Semanal -->
-  @if (activeTab() === 'resumen') {
-    <app-resumen />
+  <!-- Fullscreen In-App Alarm Alert -->
+  @if (notificationService.activeAlarm(); as alarm) {
+    <div class="fixed inset-0 z-[120] bg-[#080C16] text-white flex flex-col justify-between p-6 sm:p-10 animate-in fade-in duration-300">
+      <!-- Glow background -->
+      <div class="absolute inset-0 bg-radial from-[#FF3300]/15 via-transparent to-transparent pointer-events-none"></div>
+
+      <!-- Top Branding -->
+      <div class="relative z-10 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-[#FF3300] animate-ping"></div>
+          <span class="text-xs uppercase tracking-widest font-mono text-[#FFE082] font-semibold">LUMOS ALARM</span>
+        </div>
+        @if (alarm.categoria) {
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border border-neutral-700 bg-neutral-900/80 text-neutral-300">
+            {{ alarm.categoria }}
+          </span>
+        }
+      </div>
+
+      <!-- Center Pulsing Element & Alarm Info -->
+      <div class="relative z-10 flex flex-col items-center text-center my-auto">
+        <!-- Pulsing Bell Icon & Orbital Ring -->
+        <div class="relative w-32 h-32 flex items-center justify-center mb-8">
+          <div class="absolute inset-0 rounded-full border border-[#FF3300]/40 animate-ping"></div>
+          <div class="absolute inset-2 rounded-full border border-[#FFE082]/30 animate-spin" style="animation-duration: 8s;"></div>
+          <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-[#FF3300] to-[#FF8533] flex items-center justify-center shadow-[0_0_40px_rgba(255,51,0,0.6)]">
+            <svg class="w-10 h-10 text-white animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+        </div>
+
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tight text-white mb-3">
+          {{ alarm.title }}
+        </h2>
+        <p class="text-base text-neutral-300 max-w-sm font-medium leading-relaxed">
+          {{ alarm.body }}
+        </p>
+      </div>
+
+      <!-- Bottom Actions -->
+      <div class="relative z-10 flex flex-col sm:flex-row gap-3 w-full max-w-md mx-auto">
+        <button
+          type="button"
+          (click)="notificationService.snoozeActiveAlarm(5)"
+          class="flex-1 py-4 px-6 rounded-2xl bg-neutral-900 border border-neutral-700 hover:border-neutral-500 text-neutral-200 text-sm font-bold tracking-wide transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4 text-[#FFE082]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Posponer 5 min
+        </button>
+
+        <button
+          type="button"
+          (click)="notificationService.dismissActiveAlarm()"
+          class="flex-1 py-4 px-6 rounded-2xl bg-[#FF3300] hover:bg-[#E62E00] text-white text-sm font-bold tracking-wide shadow-[0_4px_25px_rgba(255,51,0,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Descartar
+        </button>
+      </div>
+    </div>
   }
 
   <!-- Fixed Bottom Navigation Bar -->

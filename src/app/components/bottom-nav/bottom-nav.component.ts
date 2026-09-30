@@ -2,7 +2,7 @@ import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService } from '../../services/i18n.service';
 
-export type ActiveTab = 'hoy' | 'crear' | 'alarmas' | 'resumen';
+export type ActiveTab = 'hoy' | 'crear' | 'alarmas';
 
 @Component({
   selector: 'app-bottom-nav',
@@ -10,12 +10,12 @@ export type ActiveTab = 'hoy' | 'crear' | 'alarmas' | 'resumen';
   imports: [CommonModule],
   template: `
     <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200/80 safe-bottom">
-      <div class="max-w-md mx-auto px-4 h-16 flex items-center justify-around">
+      <div class="max-w-md mx-auto px-6 h-16 flex items-center justify-around">
         <!-- Hoy Tab -->
         <button
           type="button"
           (click)="onSelectTab('hoy')"
-          class="flex flex-col items-center justify-center w-16 py-1 transition-transform active:scale-95 select-none"
+          class="flex flex-col items-center justify-center w-20 py-1 transition-transform active:scale-95 select-none"
           [ngClass]="activeTab() === 'hoy' ? 'text-[#FF3300]' : 'text-neutral-500 hover:text-neutral-800'"
         >
           <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -32,7 +32,7 @@ export type ActiveTab = 'hoy' | 'crear' | 'alarmas' | 'resumen';
         <button
           type="button"
           (click)="onSelectTab('crear')"
-          class="flex flex-col items-center justify-center w-16 py-1 transition-transform active:scale-95 select-none"
+          class="flex flex-col items-center justify-center w-20 py-1 transition-transform active:scale-95 select-none"
           [ngClass]="activeTab() === 'crear' ? 'text-[#FF3300]' : 'text-neutral-500 hover:text-neutral-800'"
         >
           <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -47,7 +47,7 @@ export type ActiveTab = 'hoy' | 'crear' | 'alarmas' | 'resumen';
         <button
           type="button"
           (click)="onSelectTab('alarmas')"
-          class="flex flex-col items-center justify-center w-16 py-1 transition-transform active:scale-95 select-none"
+          class="flex flex-col items-center justify-center w-20 py-1 transition-transform active:scale-95 select-none"
           [ngClass]="activeTab() === 'alarmas' ? 'text-[#FF3300]' : 'text-neutral-500 hover:text-neutral-800'"
         >
           <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -55,21 +55,6 @@ export type ActiveTab = 'hoy' | 'crear' | 'alarmas' | 'resumen';
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           <span class="text-[11px] font-medium tracking-tight mt-0.5">{{ i18n.t().tabs.alarms }}</span>
-        </button>
-
-        <!-- Resumen Tab -->
-        <button
-          type="button"
-          (click)="onSelectTab('resumen')"
-          class="flex flex-col items-center justify-center w-16 py-1 transition-transform active:scale-95 select-none"
-          [ngClass]="activeTab() === 'resumen' ? 'text-[#FF3300]' : 'text-neutral-500 hover:text-neutral-800'"
-        >
-          <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-            <line x1="15" y1="3" x2="15" y2="21"></line>
-          </svg>
-          <span class="text-[11px] font-medium tracking-tight mt-0.5">{{ i18n.t().tabs.summary }}</span>
         </button>
       </div>
     </nav>
