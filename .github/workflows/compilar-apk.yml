@@ -70,6 +70,12 @@ jobs:
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle-build.log
 
+      - name: Mostrar Log de Error de Gradle
+        if: failure()
+        run: |
+          echo "::error::Falló la compilación de Gradle. Revisando últimas líneas del log:"
+          tail -n 120 gradle-build.log
+
       - name: Subir Log de Gradle si Falla
         if: failure()
         uses: actions/upload-artifact@v4
